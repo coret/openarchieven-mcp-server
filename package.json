@@ -1,0 +1,28 @@
+{
+  "name": "@coret/openarchieven-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for the Open Archives genealogical search engine.",
+  "type": "module",
+  "mcpName": "mcp.openarchieven.nl",
+  "scripts": {
+    "generate": "tsx generate.ts",
+    "start": "tsx server.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "axios": "^1.7.9",
+    "express": "^4.21.2",
+    "ioredis": "^5.4.2",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "yaml": "^2.7.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
