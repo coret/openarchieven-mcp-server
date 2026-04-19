@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "MCP server for the Open Archives genealogical search engine.",
   "type": "module",
-  "mcpName": "mcp.openarchieven.nl",
+  "mcpName": "io.github.coret/openarchieven-mcp-server",
   "scripts": {
     "generate": "tsx generate.ts",
     "start": "tsx server.ts",
