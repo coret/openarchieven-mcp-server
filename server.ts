@@ -52,12 +52,14 @@ const RATE_LIMIT_RPS = parseInt(process.env['RATE_LIMIT_RPS'] ?? '4', 10);
 const REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6379/5';
 const CACHE_TTL = parseInt(process.env['CACHE_TTL'] ?? '3600', 10);
 
-// Tool aliases: alias → canonical tool name
-const ALIASES: Record<string, string> = {
-  search_person: 'search_records',
-  get_record: 'show_record',
-  list_archives: 'get_archives',
-};
+// Origin allowlist for the remote MCP endpoint (DNS-rebinding defense).
+// Hardcoded Claude origins are always allowed; ALLOWED_ORIGINS adds more.
+const HARDCODED_ORIGINS = ['https://claude.ai', 'https://claude.com'];
+const HARDCODED_ORIGIN_SUFFIXES = ['.claude.ai', '.claude.com'];
+const EXTRA_ORIGINS = (process.env['ALLOWED_ORIGINS'] ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 // ─── Load tool definitions ────────────────────────────────────────────────────
 
@@ -70,7 +72,28 @@ const TOOLS: ToolDef[] = JSON.parse(fs.readFileSync(toolsPath, 'utf8'));
 const TOOL_MAP = new Map<string, ToolDef>(TOOLS.map((t) => [t.name, t]));
 
 function resolveTool(name: string): ToolDef | undefined {
-  return TOOL_MAP.get(name) ?? TOOL_MAP.get(ALIASES[name] ?? '');
+  return TOOL_MAP.get(name);
+}
+
+function humanize(snake: string): string {
+  return snake
+    .split('_')
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+function isOriginAllowed(origin: string | undefined): boolean {
+  if (!origin) return true; // curl, server-to-server, native MCP clients
+  if (HARDCODED_ORIGINS.includes(origin)) return true;
+  if (EXTRA_ORIGINS.includes(origin)) return true;
+  try {
+    const host = new URL(origin).hostname;
+    if (HARDCODED_ORIGIN_SUFFIXES.some((s) => host.endsWith(s))) return true;
+  } catch {
+    return false;
+  }
+  return false;
 }
 
 // ─── Rate Limiter ─────────────────────────────────────────────────────────────
@@ -234,29 +257,38 @@ function createMcpServer(): McpServer {
 
   const registerTool = (name: string, tool: ToolDef) => {
     const shape = buildZodShape(tool.params);
-    server.tool(name, tool.description, shape, async (args) => {
-      log.info({ tool: name, args }, 'mcp tool call');
-      try {
-        const result = await callUpstream(tool, args as Record<string, unknown>);
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
-        };
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        log.error({ tool: name, err: msg }, 'tool call failed');
-        return {
-          content: [{ type: 'text' as const, text: `Error: ${msg}` }],
-          isError: true,
-        };
-      }
-    });
+    server.registerTool(
+      name,
+      {
+        title: humanize(name),
+        description: tool.description,
+        inputSchema: shape,
+        annotations: {
+          readOnlyHint: true,
+          destructiveHint: false,
+          openWorldHint: true,
+        },
+      },
+      async (args) => {
+        log.info({ tool: name, args }, 'mcp tool call');
+        try {
+          const result = await callUpstream(tool, args as Record<string, unknown>);
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+          };
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          log.error({ tool: name, err: msg }, 'tool call failed');
+          return {
+            content: [{ type: 'text' as const, text: `Error: ${msg}` }],
+            isError: true,
+          };
+        }
+      },
+    );
   };
 
   for (const tool of TOOLS) registerTool(tool.name, tool);
-  for (const [alias, canonical] of Object.entries(ALIASES)) {
-    const tool = TOOL_MAP.get(canonical);
-    if (tool) registerTool(alias, tool);
-  }
 
   return server;
 }
@@ -324,7 +356,6 @@ app.get('/health', (_req, res) => {
   res.json({
     ok: true,
     tools: TOOLS.length,
-    aliases: Object.keys(ALIASES).length,
     redis: redisAvailable,
     uptime: process.uptime(),
   });
@@ -332,12 +363,12 @@ app.get('/health', (_req, res) => {
 
 // ── List tools ────────────────────────────────────────────────────────────────
 app.get('/tools', (_req, res) => {
-  res.json([...TOOLS.map((t) => t.name), ...Object.keys(ALIASES)]);
+  res.json(TOOLS.map((t) => t.name));
 });
 
 // ── Direct HTTP tool call ─────────────────────────────────────────────────────
 app.post('/tools/:name', async (req: Request, res: Response) => {
-  const name = req.params['name']!;
+  const name = req.params['name'] as string;
   const tool = resolveTool(name);
   if (!tool) {
     log.warn({ tool: name }, 'unknown tool');
@@ -358,7 +389,7 @@ app.post('/tools/:name', async (req: Request, res: Response) => {
 
 // ── SSE streaming with auto-pagination ───────────────────────────────────────
 app.get('/events/:name', async (req: Request, res: Response) => {
-  const name = req.params['name']!;
+  const name = req.params['name'] as string;
   const tool = resolveTool(name);
   if (!tool) {
     res.status(404).json({ error: `Unknown tool: ${name}` });
@@ -396,7 +427,7 @@ app.get('/events/:name', async (req: Request, res: Response) => {
 
 // ── Chunked HTTP streaming with auto-pagination ───────────────────────────────
 app.post('/stream/:name', async (req: Request, res: Response) => {
-  const name = req.params['name']!;
+  const name = req.params['name'] as string;
   const tool = resolveTool(name);
   if (!tool) {
     res.status(404).json({ error: `Unknown tool: ${name}` });
@@ -460,6 +491,16 @@ class OneShotTransport implements Transport {
   }
 }
 
+function validateOrigin(req: Request, res: Response, next: NextFunction) {
+  const origin = req.headers.origin as string | undefined;
+  if (!isOriginAllowed(origin)) {
+    log.warn({ origin, path: req.path }, 'rejected: Origin not allowed');
+    res.status(403).json({ error: 'Origin not allowed' });
+    return;
+  }
+  next();
+}
+
 async function handleMcp(req: Request, res: Response, next: NextFunction) {
   const body = req.body as JSONRPCMessage;
   const isNotification = !('id' in body);
@@ -487,9 +528,10 @@ async function handleMcp(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-// Mounted on both / (canonical public URL) and /mcp (local/legacy)
-app.all('/', handleMcp);
-app.all('/mcp', handleMcp);
+// Mounted on both / (canonical public URL) and /mcp (local/legacy).
+// POST-only; Origin is validated to prevent DNS-rebinding from untrusted sites.
+app.post('/', validateOrigin, handleMcp);
+app.post('/mcp', validateOrigin, handleMcp);
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 
@@ -499,7 +541,6 @@ app.listen(PORT, '0.0.0.0', () => {
   log.info({
     port: PORT,
     tools: TOOLS.length,
-    aliases: Object.keys(ALIASES).length,
     upstream: UPSTREAM_BASE,
     rateLimit: `${RATE_LIMIT_RPS} req/s`,
     redis: REDIS_URL,

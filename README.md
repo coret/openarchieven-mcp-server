@@ -68,18 +68,6 @@ Uses actual OpenAPI parameter schemas. Validates:
 
 ---
 
-## Tool Aliases
-
-Friendly aliases are included:
-
-| Alias | Real Tool |
-| -------------- | --------------- |
-| `search_person` | `search_records` |
-| `get_record` | `show_record` |
-| `list_archives` | `get_archives` |
-
----
-
 ## Multiple Interfaces
 
 ### MCP Remote (StreamableHTTP)
@@ -91,7 +79,10 @@ POST /mcp    ← local / legacy alias
 
 Stateless JSON-RPC transport — a new MCP server instance is created per request.
 
-> **Required header:** All MCP `POST` requests must include `Accept: application/json, text/event-stream`. Omitting it returns a `-32000 Not Acceptable` error. MCP clients (Claude Desktop, etc.) send this automatically.
+> **Origin validation:** Browser requests must come from `claude.ai`,
+> `claude.com`, or any domain listed in `ALLOWED_ORIGINS`. Requests with no
+> `Origin` header (native MCP clients, `curl`, server-to-server) are
+> accepted. Unknown origins receive **HTTP 403**.
 
 ### HTTP JSON
 
@@ -193,6 +184,7 @@ cp .env.example .env
 | `CACHE_TTL` | `3600` | Cache TTL in seconds |
 | `LOG_LEVEL` | `info` | `trace` `debug` `info` `warn` `error` `fatal` |
 | `NODE_ENV` | _(unset)_ | Set to `production` for JSON logs (default: pretty-printed) |
+| `ALLOWED_ORIGINS` | _(empty)_ | Extra Origin headers allowed on the MCP endpoint (comma-separated). Claude domains and requests without an Origin header are always allowed. |
 
 ---
 
@@ -246,7 +238,6 @@ Expected startup (development — pretty-printed):
 [12:00:00] INFO: Open Archieven MCP server started
     port: 3001
     tools: 17
-    aliases: 3
     upstream: "https://api.openarchieven.nl/1.1"
     rateLimit: "4 req/s"
     redis: "redis://localhost:6379/5"
@@ -279,7 +270,6 @@ Expected:
 {
   "ok": true,
   "tools": 17,
-  "aliases": 3,
   "redis": false,
   "uptime": 1.23
 }
@@ -313,26 +303,13 @@ Expected:
   "get_first_name_stats",
   "get_profession_stats",
   "get_historical_weather",
-  "get_census_data",
-  "search_person",
-  "get_record",
-  "list_archives"
+  "get_census_data"
 ]
 ```
 
 ---
 
-# 3. Normal Tool Call (via alias)
-
-```bash
-curl -X POST http://localhost:3001/tools/search_person \
--H "Content-Type: application/json" \
--d '{"name":"Jansen"}'
-```
-
----
-
-# 4. Canonical Tool Call
+# 3. Tool Call
 
 ```bash
 curl -X POST http://localhost:3001/tools/search_records \
@@ -342,7 +319,7 @@ curl -X POST http://localhost:3001/tools/search_records \
 
 ---
 
-# 5. Show a Single Record
+# 4. Show a Single Record
 
 ```bash
 curl -X POST http://localhost:3001/tools/show_record \
@@ -352,7 +329,7 @@ curl -X POST http://localhost:3001/tools/show_record \
 
 ---
 
-# 6. SSE Streaming
+# 5. SSE Streaming
 
 ```bash
 curl -N "http://localhost:3001/events/search_records?name=Coret"
@@ -373,7 +350,7 @@ data: {}
 
 ---
 
-# 7. Heartbeat Test
+# 6. Heartbeat Test
 
 Leave SSE open for 15+ seconds — expect periodic keep-alive lines:
 
@@ -383,7 +360,7 @@ Leave SSE open for 15+ seconds — expect periodic keep-alive lines:
 
 ---
 
-# 8. Chunked HTTP Streaming
+# 7. Chunked HTTP Streaming
 
 ```bash
 curl -N -X POST http://localhost:3001/stream/search_records \
@@ -400,7 +377,7 @@ Expected (newline-delimited JSON):
 
 ---
 
-# 9. MCP Initialize
+# 8. MCP Initialize
 
 ```bash
 curl -X POST http://localhost:3001/ \
@@ -420,7 +397,7 @@ curl -X POST http://localhost:3001/ \
 
 ---
 
-# 10. MCP List Tools
+# 9. MCP List Tools
 
 ```bash
 curl -X POST http://localhost:3001/ \
@@ -435,7 +412,7 @@ curl -X POST http://localhost:3001/ \
 
 ---
 
-# 11. MCP Call Tool
+# 10. MCP Call Tool
 
 ```bash
 curl -X POST http://localhost:3001/ \
@@ -446,7 +423,7 @@ curl -X POST http://localhost:3001/ \
   "id": 3,
   "method": "tools/call",
   "params": {
-    "name": "search_person",
+    "name": "search_records",
     "arguments": { "name": "Jansen" }
   }
 }'
@@ -525,6 +502,32 @@ Server runs normally without Redis. Check `REDIS_URL` in `.env`.
 ## Rate limit errors (429)
 
 The upstream API allows 4 req/s per IP. The built-in rate limiter queues requests automatically. If you are running multiple server instances, reduce `RATE_LIMIT_RPS` or use a shared queue.
+
+---
+
+# Privacy & Data Handling
+
+This server is a thin proxy over the public
+[Open Archives API](https://api.openarchieven.nl). It does not require user
+authentication and does not collect personal data of its own.
+
+* **Data forwarded:** Tool arguments are passed verbatim over HTTPS to
+  `https://api.openarchieven.nl/1.1`. The Open Archives privacy policy
+  applies to that upstream service.
+* **Caching:** When Redis is configured, upstream responses are cached for
+  `CACHE_TTL` seconds (default: 1 hour) under keys of the form
+  `mcp:<tool>:<sorted-params-json>`. No user identifiers are stored.
+* **Logging:** Method, path, status, latency, tool name and tool arguments
+  are logged via pino. Set `LOG_LEVEL=warn` in production to suppress
+  argument logging.
+* **Third parties:** No data is sent to any service other than the upstream
+  Open Archives API.
+* **Retention:** Nothing is persisted beyond the optional Redis cache, which
+  expires per `CACHE_TTL`.
+* **Origin validation:** The MCP endpoint validates the `Origin` header on
+  every request and rejects unknown browser origins (DNS-rebinding defense).
+* **Contact:** Open an issue on the
+  [GitHub repository](https://github.com/coret/openarchieven-mcp-server).
 
 ---
 
