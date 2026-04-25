@@ -3,13 +3,13 @@
  * Open Archieven MCP Server
  *
  * Exposes all 17 Open Archieven API endpoints as MCP tools via multiple transports:
- *   POST /mcp          — MCP StreamableHTTP (JSON-RPC)
- *   GET  /mcp          — MCP SSE stream
- *   GET  /health       — Health check
- *   GET  /tools        — List tool names
- *   POST /tools/:name  — Direct HTTP tool call
- *   GET  /events/:name — SSE streaming with auto-pagination
- *   POST /stream/:name — Chunked HTTP streaming with auto-pagination
+ *   POST /              — MCP JSON-RPC (canonical, Origin-validated)
+ *   POST /mcp           — MCP JSON-RPC (legacy alias, Origin-validated)
+ *   GET  /health        — Health check
+ *   GET  /tools         — List tool names
+ *   POST /tools/:name   — Direct HTTP tool call
+ *   GET  /events/:name  — SSE streaming with auto-pagination
+ *   POST /stream/:name  — Chunked HTTP streaming with auto-pagination
  *
  * Run: npx tsx server.ts
  * Requires: generated/tools.json (run generate.ts first)
