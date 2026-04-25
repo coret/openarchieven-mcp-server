@@ -1,6 +1,6 @@
-# Open Archieven MCP Server v1.0
+# Open Archives MCP Server
 
-Production-grade hybrid MCP + HTTP + SSE server generated from the Open Archieven OpenAPI specification.
+Production-grade hybrid MCP + HTTP + SSE server generated from the Open Archives OpenAPI specification.
 
 OpenAPI source used to generate tools:
 
@@ -21,6 +21,46 @@ A schema-aware server that automatically converts the OpenAPI specification into
 * Chunked HTTP streaming with auto-pagination
 * Redis caching (optional)
 * Health checks
+
+---
+
+# Use with Claude
+
+## Add as a custom connector
+
+A hosted endpoint is available — no installation required.
+
+In **claude.ai** or **Claude Desktop**:
+
+1. Open **Settings → Connectors**.
+2. Click **Add custom connector**.
+3. Enter the URL: `https://mcp.openarchieven.nl/`
+4. Save and approve when prompted.
+
+No authentication is required — Open Archives is a public dataset.
+
+## Example queries
+
+Once the connector is added you can ask Claude, for example:
+
+* *"Who are the ancestors of Johannes Gregorius Marinus Coret? Give me an overview, including source citations in markdown format with the links to the original archives if possible, otherwise provide the Open Archieven links and provide a tree in SVG."*
+* *"Did Johannes Coret and Antonia Uphus have descendants? Give me an overview, including source citations in markdown format with the links to the original archives if possible, otherwise provide the Open Archieven links, include thumbnails from scans from archival sources if available and provide a tree in SVG."*
+* *"Provide me with a list of sourcetypes per archive(name) where I can find information about the Coret family. Show the result in a markdown document including links to the search pages on Open Archieven. Instead of the archive code use the ISIL if available."*
+* *"What was the weather in Amsterdam on 1953-02-01?"*
+* *"What does the 1850 census say about Utrecht?"*
+
+Claude will call the matching tool (`search_records`, `show_record`,
+`get_marriages`, `get_historical_weather`, `get_census_data`, …) and
+return links to the corresponding record pages on
+`https://www.openarchieven.nl`.
+
+## Self-hosted (stdio)
+
+If you prefer running the server locally as a stdio MCP server:
+
+```bash
+npx -y @coret/openarchieven-mcp-server
+```
 
 ---
 
@@ -314,7 +354,7 @@ Expected:
 ```bash
 curl -X POST http://localhost:3001/tools/search_records \
 -H "Content-Type: application/json" \
--d '{"name":"Jansen"}'
+-d '{"name":"Coret"}'
 ```
 
 ---
@@ -365,7 +405,7 @@ Leave SSE open for 15+ seconds — expect periodic keep-alive lines:
 ```bash
 curl -N -X POST http://localhost:3001/stream/search_records \
 -H "Content-Type: application/json" \
--d '{"name":"Jansen"}'
+-d '{"name":"Coret"}'
 ```
 
 Expected (newline-delimited JSON):
@@ -424,7 +464,7 @@ curl -X POST http://localhost:3001/ \
   "method": "tools/call",
   "params": {
     "name": "search_records",
-    "arguments": { "name": "Jansen" }
+    "arguments": { "name": "Coret" }
   }
 }'
 ```
@@ -595,4 +635,4 @@ For privacy questions or requests, contact:
 v1.0
 ```
 
-Schema-perfect OpenAPI-generated MCP server for Open Archieven.
+Schema-perfect OpenAPI-generated MCP server for Open Archives.
