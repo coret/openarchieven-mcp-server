@@ -505,29 +505,76 @@ The upstream API allows 4 req/s per IP. The built-in rate limiter queues request
 
 ---
 
-# Privacy & Data Handling
+# Privacy Policy
 
 This server is a thin proxy over the public
 [Open Archives API](https://api.openarchieven.nl). It does not require user
 authentication and does not collect personal data of its own.
 
-* **Data forwarded:** Tool arguments are passed verbatim over HTTPS to
-  `https://api.openarchieven.nl/1.1`. The Open Archives privacy policy
-  applies to that upstream service.
-* **Caching:** When Redis is configured, upstream responses are cached for
-  `CACHE_TTL` seconds (default: 1 hour) under keys of the form
-  `mcp:<tool>:<sorted-params-json>`. No user identifiers are stored.
-* **Logging:** Method, path, status, latency, tool name and tool arguments
-  are logged via pino. Set `LOG_LEVEL=warn` in production to suppress
-  argument logging.
-* **Third parties:** No data is sent to any service other than the upstream
-  Open Archives API.
-* **Retention:** Nothing is persisted beyond the optional Redis cache, which
-  expires per `CACHE_TTL`.
-* **Origin validation:** The MCP endpoint validates the `Origin` header on
-  every request and rejects unknown browser origins (DNS-rebinding defense).
-* **Contact:** Open an issue on the
-  [GitHub repository](https://github.com/coret/openarchieven-mcp-server).
+The full privacy policies of the operators apply in addition to this section:
+
+* [Open Archives — Disclaimer & Privacy](https://www.openarchieven.nl/disclaimer.php?lang=en)
+* [Coret Genealogy — Privacy Policy](https://genealogie.coret.org/en/beleid/privacy.php)
+
+## Data collection
+
+* **Tool arguments** (e.g. a search name, an archive code, a record
+  identifier) are received from the MCP client.
+* **HTTP request metadata** — method, path, status code, latency, and the
+  source IP — is observed by the reverse proxy in front of the hosted
+  endpoint at `mcp.openarchieven.nl`.
+* No accounts, cookies, tokens, or session identifiers are collected.
+  The server is anonymous-by-design.
+
+## Use and storage
+
+* Tool arguments are forwarded verbatim over HTTPS to
+  `https://api.openarchieven.nl/1.1` to fulfill the request, and the
+  upstream response is returned to the caller.
+* **Application logs** (tool name, arguments, status, latency) are written
+  to `stdout` via [pino](https://github.com/pinojs/pino). On the hosted
+  endpoint these logs are **ephemeral**: they are not written to disk and
+  are lost on process restart. Set `LOG_LEVEL=warn` to suppress argument
+  logging.
+* **Cache** (optional): when Redis is configured, upstream responses are
+  cached under keys of the form `mcp:<tool>:<sorted-params-json>`. The
+  cache contains response bodies only; no user identifiers are stored.
+
+## Third-party sharing
+
+No data is sent to any service other than the upstream Open Archives API
+listed above. There are no analytics, telemetry, advertising, or
+observability third parties involved.
+
+## Data retention
+
+| Data | Retention |
+| --- | --- |
+| Tool arguments and responses | Not persisted by the application |
+| Application logs | Ephemeral (`stdout`, lost on restart) |
+| Redis cache entries | `CACHE_TTL` seconds (default 1 hour), then evicted |
+| Reverse-proxy access logs | Per the hosting provider's standard retention policy |
+
+## Security
+
+The MCP endpoint validates the `Origin` header on every request and
+rejects unknown browser origins (DNS-rebinding defense). All transport is
+over HTTPS.
+
+## External links surfaced to clients
+
+Tool responses include URLs that point to record pages on
+`https://www.openarchieven.nl`. The submission declares the following
+allowed link URI so users are not prompted to confirm each link:
+
+* `https://www.openarchieven.nl`
+
+## Contact
+
+For privacy questions or requests, contact:
+
+* **Email:** `genealogie@coret.org`
+* **GitHub:** [open an issue](https://github.com/coret/openarchieven-mcp-server/issues)
 
 ---
 
