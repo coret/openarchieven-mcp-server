@@ -7,8 +7,10 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "dist",
-    "rootDir": "."
+    "rootDir": ".",
+    "allowImportingTsExtensions": true,
+    "noEmit": true
   },
-  "include": ["*.ts"],
+  "include": ["*.ts", "api/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
