@@ -52,6 +52,12 @@ const RATE_LIMIT_RPS = parseInt(process.env['RATE_LIMIT_RPS'] ?? '4', 10);
 const REDIS_URL = process.env['REDIS_URL'] ?? 'redis://localhost:6379/5';
 const CACHE_TTL = parseInt(process.env['CACHE_TTL'] ?? '3600', 10);
 
+const pkg = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf8'),
+) as { name: string; version: string };
+const UA_NAME = pkg.name.split('/').pop() ?? pkg.name;
+const USER_AGENT = `${UA_NAME}/${pkg.version} (+https://github.com/coret/openarchieven-mcp-server)`;
+
 // Origin allowlist for the remote MCP endpoint (DNS-rebinding defense).
 // Hardcoded Claude origins are always allowed; ALLOWED_ORIGINS adds more.
 const HARDCODED_ORIGINS = ['https://claude.ai', 'https://claude.com'];
@@ -238,7 +244,7 @@ async function callUpstream(
   const t0 = Date.now();
   const res = await axios.get(url, {
     params,
-    headers: { Accept: 'application/json' },
+    headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
     timeout: 15_000,
   });
   log.info({ tool: tool.name, status: res.status, ms: Date.now() - t0 }, 'upstream ok');
