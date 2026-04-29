@@ -7,7 +7,8 @@
   "scripts": {
     "generate": "tsx generate.ts",
     "start": "tsx server.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "vercel-build": "tsx generate.ts https://api.openarchieven.nl/openapi.yaml"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",

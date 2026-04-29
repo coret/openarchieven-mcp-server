@@ -17,7 +17,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import axios from 'axios';
 import { Redis } from 'ioredis';
@@ -589,13 +589,22 @@ app.get('/', (req: Request, res: Response) => {
 
 initRedis();
 
-app.listen(PORT, '0.0.0.0', () => {
-  log.info({
-    port: PORT,
-    tools: TOOLS.length,
-    upstream: UPSTREAM_BASE,
-    rateLimit: `${RATE_LIMIT_RPS} req/s`,
-    redis: REDIS_URL,
-    env: process.env['NODE_ENV'] ?? 'development',
-  }, 'Open Archieven MCP server started');
-});
+// Only bind a port when run directly (e.g. `tsx server.ts`).
+// When imported (e.g. by api/index.ts on Vercel) we just export the app.
+const isEntrypoint =
+  import.meta.url === pathToFileURL(process.argv[1] ?? '').href;
+
+if (isEntrypoint) {
+  app.listen(PORT, '0.0.0.0', () => {
+    log.info({
+      port: PORT,
+      tools: TOOLS.length,
+      upstream: UPSTREAM_BASE,
+      rateLimit: `${RATE_LIMIT_RPS} req/s`,
+      redis: REDIS_URL,
+      env: process.env['NODE_ENV'] ?? 'development',
+    }, 'Open Archieven MCP server started');
+  });
+}
+
+export default app;
