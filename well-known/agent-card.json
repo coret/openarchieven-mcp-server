@@ -1,0 +1,38 @@
+{
+  "protocolVersion": "0.3.0",
+  "name": "Open Archives",
+  "description": "Genealogical search agent for the Open Archives Dutch archival aggregator. Searches births, deaths, marriages, censuses, and related archival records, plus historical weather from KNMI.",
+  "url": "https://mcp.openarchieven.nl/",
+  "preferredTransport": "JSONRPC",
+  "provider": {
+    "organization": "Coret Genealogy",
+    "url": "https://genealogie.coret.org"
+  },
+  "version": "1.0.0",
+  "documentationUrl": "https://github.com/coret/openarchieven-mcp-server",
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false
+  },
+  "defaultInputModes": ["application/json"],
+  "defaultOutputModes": ["application/json"],
+  "skills": [
+    { "id": "search_records",         "name": "Search Records",          "description": "Search genealogical records by name, place, archive, source type, etc.", "tags": ["genealogy", "search"] },
+    { "id": "show_record",            "name": "Show Record",             "description": "Show a single genealogical record by archive + identifier.",             "tags": ["genealogy"] },
+    { "id": "match_record",           "name": "Match Record",            "description": "Match a person to birth and death records.",                              "tags": ["genealogy"] },
+    { "id": "get_births",             "name": "Find Births",             "description": "Find birth records.",                                                     "tags": ["genealogy", "births"] },
+    { "id": "get_births_years_ago",   "name": "Births N Years Ago",      "description": "List births from N years ago.",                                           "tags": ["genealogy", "births"] },
+    { "id": "get_deaths",             "name": "Find Deaths",             "description": "Find death records.",                                                     "tags": ["genealogy", "deaths"] },
+    { "id": "get_marriages",          "name": "Find Marriages",          "description": "Find marriage records.",                                                  "tags": ["genealogy", "marriages"] },
+    { "id": "get_archives",           "name": "List Archives",           "description": "List all archives with statistics.",                                      "tags": ["archives"] },
+    { "id": "get_record_stats",       "name": "Record Stats",            "description": "Record count per archive.",                                               "tags": ["stats"] },
+    { "id": "get_source_type_stats",  "name": "Source-Type Stats",       "description": "Record count per source type.",                                           "tags": ["stats"] },
+    { "id": "get_event_type_stats",   "name": "Event-Type Stats",        "description": "Record count per event type.",                                            "tags": ["stats"] },
+    { "id": "get_comment_stats",      "name": "Comment Stats",           "description": "Comment count statistics.",                                               "tags": ["stats"] },
+    { "id": "get_family_name_stats",  "name": "Family-Name Stats",       "description": "Family name frequency.",                                                  "tags": ["stats", "names"] },
+    { "id": "get_first_name_stats",   "name": "First-Name Stats",        "description": "First name frequency.",                                                   "tags": ["stats", "names"] },
+    { "id": "get_profession_stats",   "name": "Profession Stats",        "description": "Profession frequency.",                                                   "tags": ["stats"] },
+    { "id": "get_historical_weather", "name": "Historical Weather",      "description": "Historical weather from KNMI.",                                           "tags": ["weather"] },
+    { "id": "get_census_data",        "name": "Census Data (1795–1899)", "description": "Dutch census data 1795–1899.",                                            "tags": ["census"] }
+  ]
+}

@@ -143,6 +143,19 @@ GET /events/:name
 POST /stream/:name
 ```
 
+### Discovery Metadata (`/.well-known`)
+
+Static, hand-editable JSON files served verbatim from `well-known/`:
+
+```text
+GET /.well-known/mcp/server-card.json   ← SEP-1649 MCP Server Card
+GET /.well-known/mcp.json               ← alias of the server card
+GET /.well-known/agent-card.json        ← A2A v0.3 Agent Card
+GET /.well-known/agent.json             ← alias of the agent card
+```
+
+Edit `well-known/mcp-server-card.json` and `well-known/agent-card.json` directly — no restart required (files are read on each request). Responses are sent with `Content-Type: application/json; charset=utf-8` and `Cache-Control: public, max-age=3600`.
+
 ---
 
 ## Pagination

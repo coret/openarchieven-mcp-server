@@ -351,6 +351,33 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+// ── Discovery metadata (static, hand-editable JSON) ──────────────────────────
+//   /.well-known/mcp/server-card.json  — SEP-1649 MCP Server Card
+//   /.well-known/mcp.json              — SEP-1960 alias (same body)
+//   /.well-known/agent-card.json       — A2A v0.3 Agent Card
+//   /.well-known/agent.json            — older A2A path (same body)
+const WELL_KNOWN_DIR = path.join(__dirname, 'well-known');
+
+function serveWellKnown(filename: string) {
+  return (_req: Request, res: Response) => {
+    fs.readFile(path.join(WELL_KNOWN_DIR, filename), 'utf8', (err, body) => {
+      if (err) {
+        log.error({ file: filename, err: err.message }, 'well-known file missing');
+        res.status(404).json({ error: 'Not found' });
+        return;
+      }
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.send(body);
+    });
+  };
+}
+
+app.get('/.well-known/mcp/server-card.json', serveWellKnown('mcp-server-card.json'));
+app.get('/.well-known/mcp.json',             serveWellKnown('mcp-server-card.json'));
+app.get('/.well-known/agent-card.json',      serveWellKnown('agent-card.json'));
+app.get('/.well-known/agent.json',           serveWellKnown('agent-card.json'));
+
 // ── Health ────────────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({

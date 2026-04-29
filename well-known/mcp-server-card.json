@@ -1,0 +1,27 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/mcp-server-card/v1.json",
+  "version": "1.0",
+  "protocolVersion": "2025-06-18",
+  "serverInfo": {
+    "name": "io.github.coret/openarchieven-mcp-server",
+    "title": "Open Archives",
+    "version": "1.0.0"
+  },
+  "description": "MCP server for the Open Archives genealogical search engine.",
+  "documentationUrl": "https://github.com/coret/openarchieven-mcp-server",
+  "transport": {
+    "type": "streamable-http",
+    "endpoint": "/"
+  },
+  "capabilities": {
+    "tools": { "listChanged": false }
+  },
+  "authentication": {
+    "required": false,
+    "schemes": []
+  },
+  "instructions": "Genealogical search over Dutch civil registry, church, and population records. Use search_records to find people, show_record for full record details, get_births / get_deaths / get_marriages for civil-registry events, and get_archives for the list of contributing archives.",
+  "tools": "dynamic",
+  "resources": "dynamic",
+  "prompts": "dynamic"
+}
