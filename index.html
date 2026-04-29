@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Open Archives MCP Server</title>
+  <meta name="description" content="MCP server for the Open Archives genealogical search engine.">
+  <style>
+    :root {
+      --fg: #1a1a1a;
+      --muted: #5a5a5a;
+      --accent: #0b5fa5;
+      --bg: #fafafa;
+      --card: #fff;
+      --border: #e3e3e3;
+      --code-bg: #f1f3f5;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--fg);
+      background: var(--bg);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    main {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+    h1 { font-size: 1.85rem; margin: 0 0 .25rem; }
+    h2 { font-size: 1.2rem; margin: 2.25rem 0 .6rem; border-bottom: 1px solid var(--border); padding-bottom: .25rem; }
+    p.tagline { color: var(--muted); margin: 0 0 1.75rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code, kbd, pre {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: .92em;
+    }
+    code { background: var(--code-bg); padding: .1em .35em; border-radius: 3px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.1rem;
+      margin: .75rem 0;
+    }
+    .card h3 { margin: 0 0 .35rem; font-size: 1rem; }
+    .endpoints { list-style: none; padding: 0; margin: 0; }
+    .endpoints li { padding: .35rem 0; border-bottom: 1px dashed var(--border); }
+    .endpoints li:last-child { border-bottom: 0; }
+    .endpoints code { font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; margin: .5rem 0 0; }
+    th, td { text-align: left; padding: .5rem .55rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { background: var(--code-bg); font-weight: 600; font-size: .9rem; }
+    td:first-child { white-space: nowrap; }
+    ul.links { padding-left: 1.2rem; }
+    ul.links li { margin: .25rem 0; }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: .9rem;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--code-bg);
+      color: var(--muted);
+      border-radius: 3px;
+      padding: .05rem .4rem;
+      font-size: .8rem;
+      margin-left: .35rem;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+<main>
+
+  <h1>Open Archives MCP Server <span class="badge">v1.0.0</span></h1>
+  <p class="tagline">MCP server for the Open Archives genealogical search engine — Dutch civil registry, church and population records, plus historical weather and census data.</p>
+
+  <h2>Use with Claude</h2>
+  <div class="card">
+    <p style="margin:.1rem 0 .6rem">Add this server as a custom connector in <a href="https://claude.ai">claude.ai</a> or Claude Desktop:</p>
+    <p style="margin:.1rem 0">Settings &rarr; Connectors &rarr; <strong>Add custom connector</strong> &rarr; URL:</p>
+    <p style="margin:.4rem 0"><code>https://mcp.openarchieven.nl/</code></p>
+    <p style="color:var(--muted); margin:.6rem 0 0; font-size:.92rem">No authentication required &mdash; Open Archives is a public dataset.</p>
+  </div>
+
+  <h2>Capabilities &amp; transports</h2>
+  <ul class="endpoints">
+    <li><code>POST /</code> &mdash; MCP JSON-RPC (Streamable HTTP, canonical endpoint, Origin-validated)</li>
+    <li><code>POST /mcp</code> &mdash; MCP JSON-RPC (legacy alias)</li>
+    <li><code>GET /tools</code> &middot; <code>POST /tools/:name</code> &mdash; direct HTTP JSON tool calls</li>
+    <li><code>GET /events/:name</code> &mdash; SSE streaming with auto-pagination</li>
+    <li><code>POST /stream/:name</code> &mdash; chunked NDJSON streaming with auto-pagination</li>
+    <li><code>GET /health</code> &mdash; health check</li>
+  </ul>
+
+  <h2>Tools <span class="badge">17</span></h2>
+  <table>
+    <thead><tr><th>Tool</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>search_records</code></td><td>Search genealogical records by name, place, archive, source type, etc.</td></tr>
+      <tr><td><code>show_record</code></td><td>Show a single genealogical record by archive + identifier.</td></tr>
+      <tr><td><code>match_record</code></td><td>Match a person to birth and death records.</td></tr>
+      <tr><td><code>get_births</code></td><td>Find birth records.</td></tr>
+      <tr><td><code>get_births_years_ago</code></td><td>List births from N years ago.</td></tr>
+      <tr><td><code>get_deaths</code></td><td>Find death records.</td></tr>
+      <tr><td><code>get_marriages</code></td><td>Find marriage records.</td></tr>
+      <tr><td><code>get_archives</code></td><td>List all archives with statistics.</td></tr>
+      <tr><td><code>get_record_stats</code></td><td>Record count per archive.</td></tr>
+      <tr><td><code>get_source_type_stats</code></td><td>Record count per source type.</td></tr>
+      <tr><td><code>get_event_type_stats</code></td><td>Record count per event type.</td></tr>
+      <tr><td><code>get_comment_stats</code></td><td>Comment count statistics.</td></tr>
+      <tr><td><code>get_family_name_stats</code></td><td>Family name frequency.</td></tr>
+      <tr><td><code>get_first_name_stats</code></td><td>First name frequency.</td></tr>
+      <tr><td><code>get_profession_stats</code></td><td>Profession frequency.</td></tr>
+      <tr><td><code>get_historical_weather</code></td><td>Historical weather from KNMI.</td></tr>
+      <tr><td><code>get_census_data</code></td><td>Dutch census data 1795&ndash;1899.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Discovery metadata</h2>
+  <ul class="links">
+    <li><a href="/.well-known/mcp/server-card.json"><code>/.well-known/mcp/server-card.json</code></a> &mdash; MCP Server Card (SEP-1649)</li>
+    <li><a href="/.well-known/mcp.json"><code>/.well-known/mcp.json</code></a> &mdash; alias of the server card</li>
+    <li><a href="/.well-known/agent-card.json"><code>/.well-known/agent-card.json</code></a> &mdash; A2A v0.3 Agent Card</li>
+    <li><a href="/.well-known/agent.json"><code>/.well-known/agent.json</code></a> &mdash; alias of the agent card</li>
+  </ul>
+
+  <h2>Links</h2>
+  <ul class="links">
+    <li><a href="https://github.com/coret/openarchieven-mcp-server">GitHub &mdash; coret/openarchieven-mcp-server</a> (source, README, issues)</li>
+    <li><a href="https://api.openarchieven.nl">api.openarchieven.nl</a> &mdash; upstream Open Archives REST API</li>
+    <li><a href="https://www.openarchieven.nl">www.openarchieven.nl</a> &mdash; public Open Archives site</li>
+    <li><a href="https://genealogie.coret.org">Coret Genealogy</a> &mdash; provider</li>
+  </ul>
+
+  <footer>
+    <p>Provided by Coret Genealogy. Privacy: the server is a thin proxy over the public Open Archives API and collects no personal data of its own &mdash; see the <a href="https://github.com/coret/openarchieven-mcp-server#privacy-policy">privacy policy</a>.</p>
+  </footer>
+
+</main>
+</body>
+</html>

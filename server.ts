@@ -336,6 +336,7 @@ async function* paginate(
 // ─── Request logging middleware ───────────────────────────────────────────────
 
 const app = express();
+app.disable('x-powered-by');
 app.use(express.json());
 
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -559,6 +560,30 @@ async function handleMcp(req: Request, res: Response, next: NextFunction) {
 // POST-only; Origin is validated to prevent DNS-rebinding from untrusted sites.
 app.post('/', validateOrigin, handleMcp);
 app.post('/mcp', validateOrigin, handleMcp);
+
+// GET / — content-negotiated:
+//   Accept: text/event-stream  → 405 (MCP spec: no server-initiated SSE here)
+//   anything else (browsers)   → static landing page (index.html, hot-editable)
+const INDEX_HTML_PATH = path.join(__dirname, 'index.html');
+
+app.get('/', (req: Request, res: Response) => {
+  const wants = req.accepts(['html', 'text/event-stream']);
+  if (wants === 'text/event-stream') {
+    res.setHeader('Allow', 'POST');
+    res.status(405).json({ error: 'Method Not Allowed. Use POST for MCP JSON-RPC.' });
+    return;
+  }
+  fs.readFile(INDEX_HTML_PATH, 'utf8', (err, body) => {
+    if (err) {
+      log.error({ err: err.message }, 'index.html missing');
+      res.status(500).json({ error: 'Landing page unavailable' });
+      return;
+    }
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.send(body);
+  });
+});
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 
