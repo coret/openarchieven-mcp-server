@@ -2,7 +2,7 @@
 /**
  * Open Archieven MCP Server
  *
- * Exposes all 17 Open Archieven API endpoints as MCP tools via multiple transports:
+ * Exposes all 18 Open Archieven API endpoints as MCP tools via multiple transports:
  *   POST /              — MCP JSON-RPC (canonical, Origin-validated)
  *   POST /mcp           — MCP JSON-RPC (legacy alias, Origin-validated)
  *   GET  /health        — Health check

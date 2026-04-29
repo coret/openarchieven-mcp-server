@@ -70,7 +70,7 @@ npx -y @coret/openarchieven-mcp-server
 
 Every API operation becomes a tool automatically via `generate.ts`.
 
-All 17 operations:
+All 18 operations:
 
 | Tool Name | Description |
 | ---------------------- | -------------------------------------------- |
@@ -89,6 +89,7 @@ All 17 operations:
 | `get_family_name_stats` | Family name frequency |
 | `get_first_name_stats` | First name frequency |
 | `get_profession_stats` | Profession frequency |
+| `get_breakdown` | Cross-tabulation grouped by archive, source type, event type, place or year |
 | `get_historical_weather` | Historical weather from KNMI |
 | `get_census_data` | Dutch census data 1795–1899 |
 
@@ -266,7 +267,7 @@ npx tsx generate.ts https://api.openarchieven.nl/openapi.yaml
 Expected result:
 
 ```text
-Generated 17 tools
+Generated 18 tools
 Output: generated/tools.json, generated/spec.json
 ```
 
@@ -290,7 +291,7 @@ Expected startup (development — pretty-printed):
 ```text
 [12:00:00] INFO: Open Archieven MCP server started
     port: 3001
-    tools: 17
+    tools: 18
     upstream: "https://api.openarchieven.nl/1.1"
     rateLimit: "4 req/s"
     redis: "redis://localhost:6379/5"
@@ -322,7 +323,7 @@ Expected:
 ```json
 {
   "ok": true,
-  "tools": 17,
+  "tools": 18,
   "redis": false,
   "uptime": 1.23
 }

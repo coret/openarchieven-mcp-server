@@ -32,6 +32,7 @@
     { "id": "get_family_name_stats",  "name": "Family-Name Stats",       "description": "Family name frequency.",                                                  "tags": ["stats", "names"] },
     { "id": "get_first_name_stats",   "name": "First-Name Stats",        "description": "First name frequency.",                                                   "tags": ["stats", "names"] },
     { "id": "get_profession_stats",   "name": "Profession Stats",        "description": "Profession frequency.",                                                   "tags": ["stats"] },
+    { "id": "get_breakdown",          "name": "Breakdown Stats",         "description": "Cross-tabulation: record counts grouped by archive, source type, event type, place or year.", "tags": ["stats"] },
     { "id": "get_historical_weather", "name": "Historical Weather",      "description": "Historical weather from KNMI.",                                           "tags": ["weather"] },
     { "id": "get_census_data",        "name": "Census Data (1795–1899)", "description": "Dutch census data 1795–1899.",                                            "tags": ["census"] }
   ]
