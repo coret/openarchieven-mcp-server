@@ -26,7 +26,7 @@ import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import pino from 'pino';
-import type { ToolDef, ParamDef } from './generate.ts';
+import type { ToolDef, ParamDef } from './generate.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

@@ -1,1 +1,1 @@
-export { default } from '../server.ts';
+export { default } from '../server.js';
