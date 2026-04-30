@@ -29,6 +29,11 @@ import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import pino from 'pino';
 import type { ToolDef, ParamDef } from './generate.js';
+import {
+  findUnmappedTools,
+  resolveTtl,
+  secondsUntilUtcMidnight,
+} from './cache-ttl.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -78,6 +83,17 @@ if (!fs.existsSync(toolsPath)) {
 }
 const TOOLS: ToolDef[] = JSON.parse(fs.readFileSync(toolsPath, 'utf8'));
 const TOOL_MAP = new Map<string, ToolDef>(TOOLS.map((t) => [t.name, t]));
+
+// Surface generator drift: any newly-introduced tool with no TTL entry will
+// silently fall back to CACHE_TTL, which is rarely the right choice. Logging
+// once at boot is enough to prompt a follow-up edit to cache-ttl.ts.
+const unmappedTools = findUnmappedTools(TOOLS.map((t) => t.name));
+if (unmappedTools.length > 0) {
+  log.warn(
+    { tools: unmappedTools, fallback_ttl_seconds: CACHE_TTL },
+    'tool(s) have no entry in TOOL_TTL — falling back to CACHE_TTL; add them to cache-ttl.ts',
+  );
+}
 
 function resolveTool(name: string): ToolDef | undefined {
   return TOOL_MAP.get(name);
@@ -177,10 +193,18 @@ async function cacheGet(key: string): Promise<unknown | null> {
   }
 }
 
-async function cacheSet(key: string, value: unknown): Promise<void> {
+async function cacheSet(key: string, value: unknown, toolName: string): Promise<void> {
   if (!redisAvailable || !redis) return;
   try {
-    await redis.set(key, JSON.stringify(value), 'EX', CACHE_TTL);
+    const strategy = resolveTtl(toolName, CACHE_TTL);
+    const json = JSON.stringify(value);
+    if (strategy.kind === 'never') {
+      await redis.set(key, json);
+    } else if (strategy.kind === 'until_midnight') {
+      await redis.set(key, json, 'EX', secondsUntilUtcMidnight());
+    } else {
+      await redis.set(key, json, 'EX', strategy.seconds);
+    }
   } catch {
     // ignore
   }
@@ -251,7 +275,7 @@ async function callUpstream(
   });
   log.info({ tool: tool.name, status: res.status, ms: Date.now() - t0 }, 'upstream ok');
 
-  await cacheSet(key, res.data);
+  await cacheSet(key, res.data, tool.name);
   return res.data;
 }
 

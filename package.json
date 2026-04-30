@@ -9,6 +9,7 @@
     "refresh-spec": "curl -fsSL https://api.openarchieven.nl/openapi.yaml -o openapi.yaml && tsx generate.ts ./openapi.yaml",
     "start": "tsx server.ts",
     "build": "tsc",
+    "test": "node --import tsx --test tests/*.test.ts",
     "vercel-build": "tsx generate.ts ./openapi.yaml"
   },
   "dependencies": {
