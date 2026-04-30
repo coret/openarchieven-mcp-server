@@ -7,7 +7,7 @@
     "title": "Open Archives",
     "version": "1.0.0"
   },
-  "description": "MCP server for the Open Archives genealogical search engine.",
+  "description": "MCP server for the Open Archives genealogical search engine, including full-text page transcriptions of historical documents.",
   "documentationUrl": "https://github.com/coret/openarchieven-mcp-server",
   "transport": {
     "type": "streamable-http",
@@ -20,7 +20,7 @@
     "required": false,
     "schemes": []
   },
-  "instructions": "Genealogical search over Dutch civil registry, church, and population records. Use search_records to find people, show_record for full record details, get_births / get_deaths / get_marriages for civil-registry events, and get_archives for the list of contributing archives.",
+  "instructions": "Genealogical search over archival records. Use search_records to find people, show_record for full record details, get_births / get_deaths / get_marriages for civil-registry events, and get_archives for the list of contributing archives. Use search_transcriptions / browse_transcriptions / show_transcription for full-text page transcripts of historical documents.",
   "tools": "dynamic",
   "resources": "dynamic",
   "prompts": "dynamic"

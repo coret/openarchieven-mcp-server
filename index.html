@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Open Archives MCP Server</title>
-  <meta name="description" content="MCP server for the Open Archives genealogical search engine.">
+  <meta name="description" content="MCP server for the Open Archives genealogical search engine, including full-text page transcriptions of historical documents.">
   <style>
     :root {
       --fg: #1a1a1a;
@@ -80,7 +80,7 @@
 <main>
 
   <h1>Open Archives MCP Server <span class="badge">v1.0.0</span></h1>
-  <p class="tagline">MCP server for the Open Archives genealogical search engine — Dutch civil registry, church and population records, plus historical weather and census data.</p>
+  <p class="tagline">MCP server for the Open Archives genealogical search engine — archival records, historical weather, census data, and full-text page transcriptions of historical documents.</p>
 
   <h2>Use with Claude</h2>
   <div class="card">
@@ -100,7 +100,7 @@
     <li><code>GET /health</code> &mdash; health check</li>
   </ul>
 
-  <h2>Tools <span class="badge">18</span></h2>
+  <h2>Tools <span class="badge">21</span></h2>
   <table>
     <thead><tr><th>Tool</th><th>Description</th></tr></thead>
     <tbody>
@@ -120,8 +120,11 @@
       <tr><td><code>get_first_name_stats</code></td><td>First name frequency.</td></tr>
       <tr><td><code>get_profession_stats</code></td><td>Profession frequency.</td></tr>
       <tr><td><code>get_breakdown</code></td><td>Cross-tabulation: record counts grouped by archive, source type, event type, place or year.</td></tr>
-      <tr><td><code>get_historical_weather</code></td><td>Historical weather from KNMI.</td></tr>
+      <tr><td><code>get_historical_weather</code></td><td>Historical weather from the Dutch KNMI.</td></tr>
       <tr><td><code>get_census_data</code></td><td>Dutch census data 1795&ndash;1899.</td></tr>
+      <tr><td><code>search_transcriptions</code></td><td>Full-text search across page transcriptions of historical documents.</td></tr>
+      <tr><td><code>browse_transcriptions</code></td><td>Hierarchically browse transcriptions by source archive, archive number or inventory.</td></tr>
+      <tr><td><code>show_transcription</code></td><td>Retrieve a single page transcription by id.</td></tr>
     </tbody>
   </table>
 

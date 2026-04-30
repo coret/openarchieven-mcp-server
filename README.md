@@ -1,6 +1,6 @@
 # Open Archives MCP Server
 
-Production-grade hybrid MCP + HTTP + SSE server generated from the Open Archives OpenAPI specification.
+Production-grade hybrid MCP + HTTP + SSE server generated from the Open Archives OpenAPI specification. Covers genealogical records (births, deaths, marriages, censuses), archive statistics, historical weather, and full-text page transcriptions of historical documents.
 
 OpenAPI source used to generate tools:
 
@@ -70,7 +70,7 @@ npx -y @coret/openarchieven-mcp-server
 
 Every API operation becomes a tool automatically via `generate.ts`.
 
-All 18 operations:
+All 21 operations:
 
 | Tool Name | Description |
 | ---------------------- | -------------------------------------------- |
@@ -92,6 +92,9 @@ All 18 operations:
 | `get_breakdown` | Cross-tabulation grouped by archive, source type, event type, place or year |
 | `get_historical_weather` | Historical weather from KNMI |
 | `get_census_data` | Dutch census data 1795–1899 |
+| `search_transcriptions` | Full-text search across page transcriptions of historical documents |
+| `browse_transcriptions` | Hierarchically browse transcriptions by source archive, archive number or inventory |
+| `show_transcription` | Retrieve a single page transcription by id |
 
 > **Note:** The `callback` (JSONP) parameter present in the upstream API is excluded from all tools — it is irrelevant in an MCP/JSON-RPC context.
 
@@ -267,7 +270,7 @@ npx tsx generate.ts https://api.openarchieven.nl/openapi.yaml
 Expected result:
 
 ```text
-Generated 18 tools
+Generated 21 tools
 Output: generated/tools.json, generated/spec.json
 ```
 
@@ -291,7 +294,7 @@ Expected startup (development — pretty-printed):
 ```text
 [12:00:00] INFO: Open Archieven MCP server started
     port: 3001
-    tools: 18
+    tools: 21
     upstream: "https://api.openarchieven.nl/1.1"
     rateLimit: "4 req/s"
     redis: "redis://localhost:6379/5"
@@ -323,7 +326,7 @@ Expected:
 ```json
 {
   "ok": true,
-  "tools": 18,
+  "tools": 21,
   "redis": false,
   "uptime": 1.23
 }
@@ -357,7 +360,10 @@ Expected:
   "get_first_name_stats",
   "get_profession_stats",
   "get_historical_weather",
-  "get_census_data"
+  "get_census_data",
+  "search_transcriptions",
+  "browse_transcriptions",
+  "show_transcription"
 ]
 ```
 

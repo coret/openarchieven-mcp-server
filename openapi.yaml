@@ -7,7 +7,7 @@ info:
     The Open Archives API provides access to the genealogical dataset of Dutch, Belgian
     and French archives and associations. It allows searching and retrieving genealogical
     records, statistical data on archives, source types, event types, family names, first
-    names, professions, as well as related historical data such as weather measurements
+    names, professions, as well as related historical data such as Dutch weather measurements
     and Dutch census data. **API calls are throttled per IP address to 4 requests per second**,
     contact Open Archives to increase this value.
   contact:
@@ -28,6 +28,8 @@ tags:
     description: Statistical data about archives, source types, event types, names and professions
   - name: Related
     description: Related contextual data such as historical weather and census information
+  - name: Transcriptions
+    description: Search, browse and retrieve transcriptions of historical documents
 
 paths:
 
@@ -1643,6 +1645,370 @@ paths:
         "429":
           description: Too Many Requests — rate limit of 4 requests per second per IP exceeded.
 
+  /transcriptions/search.json:
+    get:
+      tags:
+        - Transcriptions
+      operationId: searchTranscriptions
+      summary: Full-text search across page transcriptions
+      description: >
+        Performs a full-text search across the page transcriptions of historical
+        documents indexed by Open Archives. Mirrors the search UI at
+        `/transcripties/zoek.php`. Results are ordered by Elasticsearch
+        relevance (the order is fixed and cannot be overridden) and are
+        returned paginated. Each match includes a source citation, page
+        identifier and up to five highlighted text fragments. The set of
+        facets returned depends on the supplied filters.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: >
+            Search query. Wrap in double quotes for an exact phrase match;
+            include `*` or `?` for wildcard matching; otherwise the words are
+            combined with an `AND` operator. Special characters
+            `[ ] ( ) { } ^ + = ! ~ : - /` are stripped before searching.
+          schema:
+            type: string
+          example: coret
+        - name: archive_code
+          in: query
+          required: false
+          description: >
+            Filter results to one source archive. Use the openarch archive
+            code (e.g. `utr`, `sch`); the API maps this to the corresponding
+            ISIL internally. Obtain valid codes via Stats/Archives.
+          schema:
+            type: string
+          example: hua
+        - name: archive_number
+          in: query
+          required: false
+          description: >
+            Filter results to one archive number (archieftoegang) within the
+            chosen `archive_code`. Only meaningful when `archive_code` is
+            also supplied.
+          schema:
+            type: string
+          example: "67"
+        - name: inventory_number
+          in: query
+          required: false
+          description: >
+            Filter results to one inventory number within the chosen
+            `archive_number`. Only meaningful when both `archive_code` and
+            `archive_number` are also supplied.
+          schema:
+            type: string
+        - name: year_start
+          in: query
+          required: false
+          description: >
+            Filter on the start year (`inventaris.jaar_van`) of the
+            inventory the page belongs to. Pages themselves carry no date.
+          schema:
+            type: integer
+          example: 1700
+        - name: year_end
+          in: query
+          required: false
+          description: Filter on the end year of the inventory the page belongs to.
+          schema:
+            type: integer
+          example: 1750
+        - name: number_show
+          in: query
+          required: false
+          description: Number of results to return per page. Maximum is 100.
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+          example: 5
+        - name: start
+          in: query
+          required: false
+          description: Result offset for paging.
+          schema:
+            type: integer
+            default: 0
+        - name: lang
+          in: query
+          required: false
+          description: Language code used to localise archive names in the response.
+          schema:
+            type: string
+            enum: [nl, en, de, fr]
+            default: nl
+        - name: callback
+          in: query
+          required: false
+          description: JavaScript function name for JSONP callback.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful search response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranscriptionSearchResponse"
+              example:
+                query:
+                  q: coret
+                  archive_code: null
+                  archive_number: null
+                  inventory_number: null
+                  year_start: null
+                  year_end: null
+                  start: 0
+                  number_show: 2
+                  language: en
+                response:
+                  number_found: 1128
+                  docs:
+                    - id: NL-HaNA_1.04.02_8068_0088
+                      uri: https://www.openarchieven.nl/transcripties/toon/NL-HaNA_1.04.02_8068_0088
+                      source_archive:
+                        isil: NL-HaNA
+                        archive_code: rzh
+                        name: Nationaal Archief
+                      archive_number:
+                        nr: "1.04.02"
+                        title: "Inventaris van het archief van de Verenigde Oost-Indische Compagnie (VOC), 1602-1795 (1811)"
+                        url: https://www.nationaalarchief.nl/onderzoeken/archief/1.04.02
+                      inventory_number:
+                        nr: "8068"
+                        title: "Kamer Zeeland, ingekomen stukken … 1692"
+                        url: https://www.nationaalarchief.nl/onderzoeken/archief/1.04.02/invnr/8068
+                      page: "88"
+                      snippets:
+                        - "wel <em>Coret</em> aen sComp. s bediende te koop hebben gebragt"
+                        - "geen <em>Coret</em> meer wisselen"
+                  facets:
+                    source_archive:
+                      - { isil: NL-HaNA,    archive_code: rzh, name: Nationaal Archief, count: 986 }
+                      - { isil: NL-AsdSAA,  archive_code: saa, name: Stadsarchief Amsterdam, count: 74 }
+                      - { isil: NL-HlmNHA,  archive_code: nha, name: Noord-Hollands Archief, count: 25 }
+                      - { isil: NL-UtHUA,   archive_code: hua, name: Het Utrechts Archief, count: 22 }
+        "400":
+          description: Invalid or missing parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingQuery:
+                  value: { error_code: 21, error_description: Missing required name }
+                invalidArchive:
+                  value: { error_code: 1,  error_description: Invalid archive }
+                numberShowOverMax:
+                  value: { error_code: 23, error_description: Value of number_show exceeds defined maximum }
+                missingFormat:
+                  value: { error_code: 15, error_description: Missing required format specification }
+        "429":
+          description: Too Many Requests — rate limit of 4 requests per second per IP exceeded.
+
+  /transcriptions/browse.json:
+    get:
+      tags:
+        - Transcriptions
+      operationId: browseTranscriptions
+      summary: Browse transcriptions hierarchically
+      description: >
+        Returns a hierarchical browse of available page transcriptions.
+        Mirrors `/transcripties/lijst/`. Three modes, depending on the
+        supplied filters:
+
+          * No filter — top-level list of source archives ordered by total
+            transcription count (descending).
+          * `archive_code` — list of all archive numbers (archieftoegangen)
+            within that archive, ordered by archive number.
+          * `archive_code` + `archive_number` — list of all inventories
+            within that archive number, ordered by inventory number.
+
+        The order of items is fixed and cannot be overridden. Results are
+        always returned in full (no paging).
+      parameters:
+        - name: archive_code
+          in: query
+          required: false
+          description: >
+            openarch archive code (e.g. `utr`, `sch`). When omitted, the
+            top-level list of source archives is returned.
+          schema:
+            type: string
+          example: hua
+        - name: archive_number
+          in: query
+          required: false
+          description: >
+            Archive number (archieftoegang) within the chosen `archive_code`.
+            Only meaningful when `archive_code` is also supplied.
+          schema:
+            type: string
+          example: "67"
+        - name: lang
+          in: query
+          required: false
+          description: Language code used to localise archive names in the response.
+          schema:
+            type: string
+            enum: [nl, en, de, fr]
+            default: nl
+        - name: callback
+          in: query
+          required: false
+          description: JavaScript function name for JSONP callback.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful browse response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranscriptionBrowseResponse"
+              examples:
+                level1:
+                  summary: Top-level list of source archives
+                  value:
+                    filters: { archive_code: null, archive_number: null }
+                    response:
+                      level: 1
+                      docs:
+                        - { isil: NL-HaNA,   archive_code: rzh, name: Nationaal Archief,        count: 15841597 }
+                        - { isil: NL-AsdSAA, archive_code: saa, name: Stadsarchief Amsterdam,   count: 2966344 }
+                        - { isil: NL-HlmNHA, archive_code: nha, name: Noord-Hollands Archief,   count: 2218718 }
+                        - { isil: NL-UtHUA,  archive_code: hua, name: Het Utrechts Archief,     count: 420392 }
+                level2:
+                  summary: Archive numbers within Het Utrechts Archief
+                  value:
+                    filters: { archive_code: hua, archive_number: null }
+                    response:
+                      level: 2
+                      docs:
+                        - nr: "34-4"
+                          title: "Notarissen in de stad Utrecht 1560-1905"
+                          count: 91409
+                          url: https://hetutrechtsarchief.nl/onderzoek/resultaten/archieven?mivast=39&mizig=210&miadt=39&miview=inv2&micode=34-4
+                        - nr: "67"
+                          title: "Inventaris van het archief van de familie Huydecoper 1459-1956 (1997)"
+                          count: 1420
+                          url: https://hetutrechtsarchief.nl/collectie/609C5BA8E8B34642E0534701000A17FD
+                level3:
+                  summary: Inventories within archive number 67 of Het Utrechts Archief
+                  value:
+                    filters: { archive_code: hua, archive_number: "67" }
+                    response:
+                      level: 3
+                      docs:
+                        - nr: "53"
+                          title: "Familie Huydecoper - Joan Huydecoper (1625-1704) - Brieven, uittreksels, dagboekaantekeningen en jaaroverzichten, 1648"
+                          count: 81
+                          url: https://hetutrechtsarchief.nl/collectie/609C5BB0F8244642E0534701000A17FD
+                        - nr: "67"
+                          title: "Familie Huydecoper - Joan Huydecoper (1625-1704) - Dagboek Reis van Bordeaux naar Saumur, 1648"
+                          count: 76
+                          url: https://hetutrechtsarchief.nl/collectie/609C5BB0F8344642E0534701000A17FD
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidArchive:
+                  value: { error_code: 1,  error_description: Invalid archive }
+                missingFormat:
+                  value: { error_code: 15, error_description: Missing required format specification }
+        "429":
+          description: Too Many Requests — rate limit of 4 requests per second per IP exceeded.
+
+  /transcriptions/show.json:
+    get:
+      tags:
+        - Transcriptions
+      operationId: showTranscription
+      summary: Retrieve a single transcription
+      description: >
+        Returns the full transcript of a single page along with its source
+        citation. Mirrors `/transcripties/toon/<id>`. AI-generated summaries
+        are deliberately not returned by this endpoint.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          description: >
+            Page identifier in the form `<ISIL>_<archive_number>_<page>`,
+            e.g. `NL-SdmGA_1504889_11`.
+          schema:
+            type: string
+          example: NL-SdmGA_1504889_11
+        - name: lang
+          in: query
+          required: false
+          description: Language code used to localise the archive name in the response.
+          schema:
+            type: string
+            enum: [nl, en, de, fr]
+            default: nl
+        - name: callback
+          in: query
+          required: false
+          description: JavaScript function name for JSONP callback.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful transcription response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranscriptionResponse"
+              example:
+                id: NL-SdmGA_1504889_11
+                uri: https://www.openarchieven.nl/transcripties/toon/NL-SdmGA_1504889_11
+                source_archive:
+                  isil: NL-SdmGA
+                  archive_code: sch
+                  name: Gemeentearchief Schiedam
+                archive_number:
+                  nr: "243"
+                  title: "Archief van notaris Maarten Kouwenhoven, 1646-1698"
+                  url: https://collecties.schiedam.nl/detail.php?id=7371664
+                inventory_number:
+                  nr: "761"
+                  title: "1662 januari 3-1664 december 30"
+                  url: https://collecties.schiedam.nl/detail.php?nav_id=23-0&id=7371705&name=Detail%20Deelbeschrijving
+                page: "11"
+                source_url: https://archief-schiedam.transkribus.eu/document/1504889/pages/11
+                thumb_url: https://files.transkribus.eu/iiif/2/OJMFZMDTLCEEOLBQFCBRDUDS/full/512,/0/default.jpg
+                project: transkribus
+                transcript: "Bijden Innehoude vanden jegenwoordigen Instrumente sij eenen ijgel. kennel. Ende openbaer dat op huijden den xviije Januarij Ano. xvjc. Tweentsestich voor mij Maerten kouwenhove Openbaer Nots. …"
+        "400":
+          description: Missing or invalid id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingId:
+                  value: { error_code: 12, error_description: Missing required identifier }
+                invalidId:
+                  value: { error_code: 2,  error_description: Invalid identifier (syntax) }
+        "404":
+          description: No transcription with that id was found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error_code: 2
+                error_description: Transcription not found
+        "429":
+          description: Too Many Requests — rate limit of 4 requests per second per IP exceeded.
+
 components:
   schemas:
 
@@ -2361,3 +2727,253 @@ components:
           type: integer
         year:
           type: integer
+
+    TranscriptionSourceArchive:
+      type: object
+      description: Source archive holding the transcribed page.
+      properties:
+        isil:
+          type: string
+          description: International Standard Identifier for Libraries (ISIL).
+          examples: [ "NL-SdmGA" ]
+        archive_code:
+          type: string
+          nullable: true
+          description: openarch archive code (matches the codes used elsewhere in this API).
+          examples: [ "sch" ]
+        name:
+          type: string
+          nullable: true
+          description: Localised name of the source archive.
+          examples: [ "Gemeentearchief Schiedam" ]
+      required:
+        - isil
+
+    TranscriptionArchiveNumber:
+      type: object
+      description: Archive number (archieftoegang) information for a transcription.
+      properties:
+        nr:
+          type: string
+          description: Archive number as used by the source institution.
+          examples: [ "243" ]
+        title:
+          type: string
+          description: Title of the archive.
+          examples: [ "Archief van notaris Maarten Kouwenhoven, 1646-1698" ]
+        url:
+          type: string
+          format: uri
+          description: External URL describing the archive on the source institution's website.
+      required:
+        - nr
+
+    TranscriptionInventoryNumber:
+      type: object
+      description: Inventory number information for a transcription.
+      properties:
+        nr:
+          type: string
+          examples: [ "761" ]
+        title:
+          type: string
+          examples: [ "1662 januari 3-1664 december 30" ]
+        url:
+          type: string
+          format: uri
+      required:
+        - nr
+
+    TranscriptionMatch:
+      type: object
+      description: One match in a transcription search response.
+      properties:
+        id:
+          type: string
+          description: Page identifier in the form `<ISIL>_<archive_number>_<page>`.
+          examples: [ "NL-SdmGA_1504889_11" ]
+        uri:
+          type: string
+          format: uri
+          description: Open Archives URL where the transcription can be viewed.
+        source_archive:
+          $ref: "#/components/schemas/TranscriptionSourceArchive"
+        archive_number:
+          $ref: "#/components/schemas/TranscriptionArchiveNumber"
+        inventory_number:
+          $ref: "#/components/schemas/TranscriptionInventoryNumber"
+        page:
+          type: string
+          description: Page number with leading zeros stripped.
+          examples: [ "11" ]
+        snippets:
+          type: array
+          description: >
+            Up to five highlighted text fragments showing where the search
+            terms appear. Each fragment wraps the matching terms in
+            `<em>…</em>` tags.
+          items:
+            type: string
+      required:
+        - id
+        - uri
+        - source_archive
+
+    TranscriptionFacetSourceArchive:
+      type: object
+      properties:
+        isil:        { type: string, examples: [ "NL-HaNA" ] }
+        archive_code: { type: string, nullable: true, examples: [ "rzh" ] }
+        name:        { type: string, nullable: true, examples: [ "Nationaal Archief" ] }
+        count:       { type: integer, examples: [ 986 ] }
+
+    TranscriptionFacetNumberedTitle:
+      type: object
+      properties:
+        nr:    { type: string, examples: [ "67" ] }
+        title: { type: string, examples: [ "Inventaris van het archief van de familie Huydecoper" ] }
+        count: { type: integer, examples: [ 1420 ] }
+
+    TranscriptionSearchResponse:
+      type: object
+      description: Response returned by `/transcriptions/search.json`.
+      properties:
+        query:
+          type: object
+          description: Echo of the parameters supplied by the caller.
+          properties:
+            q:                { type: string }
+            archive_code:     { type: string, nullable: true }
+            archive_number:   { type: string, nullable: true }
+            inventory_number: { type: string, nullable: true }
+            year_start:       { type: integer, nullable: true }
+            year_end:         { type: integer, nullable: true }
+            start:            { type: integer }
+            number_show:      { type: integer }
+            language:         { type: string }
+        response:
+          type: object
+          properties:
+            number_found:
+              type: integer
+              description: Total number of matches across all pages.
+            docs:
+              type: array
+              items:
+                $ref: "#/components/schemas/TranscriptionMatch"
+            facets:
+              type: object
+              description: >
+                The set of facets returned depends on the supplied filters.
+                With no `archive_code`: `source_archive`. With `archive_code`
+                only: `archive_number`. With both `archive_code` and
+                `archive_number`: `inventory_number`.
+              properties:
+                source_archive:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/TranscriptionFacetSourceArchive"
+                archive_number:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/TranscriptionFacetNumberedTitle"
+                inventory_number:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/TranscriptionFacetNumberedTitle"
+      required:
+        - query
+        - response
+
+    TranscriptionBrowseLevel1Item:
+      type: object
+      properties:
+        isil:         { type: string, examples: [ "NL-SdmGA" ] }
+        archive_code: { type: string, nullable: true, examples: [ "sch" ] }
+        name:         { type: string, nullable: true, examples: [ "Gemeentearchief Schiedam" ] }
+        count:        { type: integer, examples: [ 299138 ] }
+
+    TranscriptionBrowseNumberedItem:
+      type: object
+      properties:
+        nr:    { type: string }
+        title: { type: string }
+        count: { type: integer }
+        url:
+          type: string
+          format: uri
+          description: External URL describing this archive number or inventory on the source institution's website.
+
+    TranscriptionBrowseResponse:
+      type: object
+      description: Response returned by `/transcriptions/browse.json`.
+      properties:
+        filters:
+          type: object
+          properties:
+            archive_code:   { type: string, nullable: true }
+            archive_number: { type: string, nullable: true }
+        response:
+          type: object
+          properties:
+            level:
+              type: integer
+              enum: [1, 2, 3]
+              description: >
+                Browse depth: 1 = source archives, 2 = archive numbers within
+                an archive, 3 = inventories within an archive number.
+            docs:
+              type: array
+              description: >
+                Item shape depends on `level`. At level 1 each item is a
+                `TranscriptionBrowseLevel1Item`; at levels 2 and 3 each item
+                is a `TranscriptionBrowseNumberedItem`.
+              items:
+                oneOf:
+                  - $ref: "#/components/schemas/TranscriptionBrowseLevel1Item"
+                  - $ref: "#/components/schemas/TranscriptionBrowseNumberedItem"
+      required:
+        - filters
+        - response
+
+    TranscriptionResponse:
+      type: object
+      description: Response returned by `/transcriptions/show.json`.
+      properties:
+        id:
+          type: string
+          description: Page identifier (matches the request `id`).
+          examples: [ "NL-SdmGA_1504889_11" ]
+        uri:
+          type: string
+          format: uri
+        source_archive:
+          $ref: "#/components/schemas/TranscriptionSourceArchive"
+        archive_number:
+          $ref: "#/components/schemas/TranscriptionArchiveNumber"
+        inventory_number:
+          $ref: "#/components/schemas/TranscriptionInventoryNumber"
+        page:
+          type: string
+          description: Page number with leading zeros stripped.
+        source_url:
+          type: string
+          format: uri
+          description: Direct link to the scan or transcription on the source archive's website.
+        thumb_url:
+          type: string
+          format: uri
+          description: Thumbnail image URL, when available.
+        project:
+          type: string
+          description: >
+            Source project that produced the transcription, e.g. `transkribus`,
+            `globalise`, `mibudera`.
+        transcript:
+          type: string
+          description: Plain-text transcript of the page.
+      required:
+        - id
+        - uri
+        - source_archive
+        - transcript
