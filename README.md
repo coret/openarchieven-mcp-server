@@ -176,9 +176,19 @@ Streaming endpoints (`/events/:name`, `/stream/:name`) automatically paginate th
 
 Optional Redis support.
 
-If Redis is running:
+If Redis is running, upstream responses are cached with a per-tool TTL tuned to
+the data's volatility:
 
-* responses are cached for 1 hour (configurable via `CACHE_TTL`)
+| Category | TTL | Tools |
+|----------|-----|-------|
+| Immutable historical | never expires | `get_historical_weather`, `get_census_data` |
+| Slowly-changing metadata | 7 days | `get_archives` |
+| Stats aggregations | 1 day | `get_record_stats`, `get_source_type_stats`, `get_event_type_stats`, `get_comment_stats`, `get_family_name_stats`, `get_first_name_stats`, `get_profession_stats`, `get_breakdown` |
+| Individual record lookups | 1 day | `show_record`, `show_transcription` |
+| Search-style | 6 hours | `search_records`, `match_record`, `get_births`, `get_deaths`, `get_marriages`, `search_transcriptions`, `browse_transcriptions` |
+| Date-bound | next UTC midnight | `get_births_years_ago` |
+
+`CACHE_TTL` (default `3600`) is the fallback for any tool not in the map above.
 
 If Redis is unavailable:
 
@@ -238,7 +248,7 @@ cp .env.example .env
 | `UPSTREAM_BASE` | `https://api.openarchieven.nl/1.1` | Upstream API base URL |
 | `RATE_LIMIT_RPS`| `4` | Upstream requests per second |
 | `REDIS_URL` | `redis://localhost:6379/5` | Redis connection URL (db 5) |
-| `CACHE_TTL` | `3600` | Cache TTL in seconds |
+| `CACHE_TTL` | `3600` | Fallback cache TTL in seconds (used for tools not in the per-tool map; see [Redis Cache](#redis-cache)) |
 | `LOG_LEVEL` | `info` | `trace` `debug` `info` `warn` `error` `fatal` |
 | `NODE_ENV` | _(unset)_ | Set to `production` for JSON logs (default: pretty-printed) |
 | `ALLOWED_ORIGINS` | _(empty)_ | Extra Origin headers allowed on the MCP endpoint (comma-separated). Claude domains and requests without an Origin header are always allowed. |
@@ -529,6 +539,14 @@ npx tsx generate.ts
 npx tsx server.ts
 ```
 
+## Run tests
+
+```bash
+npm test
+```
+
+Tests cover the per-tool TTL strategy (`cache-ttl.ts`) using Node's built-in test runner — no extra dependencies. The coverage test asserts every tool emitted by `generate.ts` has an explicit TTL entry, so re-running `npm run generate` after an upstream OpenAPI change will surface any new tool that needs a TTL decision.
+
 ---
 
 # Troubleshooting
@@ -612,7 +630,7 @@ observability third parties involved.
 | --- | --- |
 | Tool arguments and responses | Not persisted by the application |
 | Application logs | Ephemeral (`stdout`, lost on restart) |
-| Redis cache entries | `CACHE_TTL` seconds (default 1 hour), then evicted |
+| Redis cache entries | Per-tool TTL (6 hours – 7 days; immutable historical lookups never expire). See [Redis Cache](#redis-cache). |
 | Reverse-proxy access logs | Per the hosting provider's standard retention policy |
 
 ## Security
