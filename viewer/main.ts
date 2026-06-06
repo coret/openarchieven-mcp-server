@@ -20,6 +20,8 @@ interface HostCtx {
   styles?: { variables?: Record<string, string | undefined> };
   displayMode?: string;
   availableDisplayModes?: string[];
+  /** Notches and, in fullscreen, the host's chat composer overlaying the bottom. */
+  safeAreaInsets?: { top: number; right: number; bottom: number; left: number };
 }
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
@@ -153,6 +155,13 @@ function applyHostContext(ctx: HostCtx | undefined): void {
       if (v != null) document.documentElement.style.setProperty(k, String(v));
     }
   }
+  // Reserve host safe areas (notch + fullscreen chat composer) as #main padding.
+  const ins = ctx.safeAreaInsets;
+  const root = document.documentElement.style;
+  root.setProperty('--sa-top', `${ins?.top ?? 0}px`);
+  root.setProperty('--sa-right', `${ins?.right ?? 0}px`);
+  root.setProperty('--sa-bottom', `${ins?.bottom ?? 0}px`);
+  root.setProperty('--sa-left', `${ins?.left ?? 0}px`);
   mainEl.classList.toggle('fullscreen', ctx.displayMode === 'fullscreen');
 }
 

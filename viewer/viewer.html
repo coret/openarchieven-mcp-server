@@ -14,6 +14,9 @@
     --accent: var(--color-accent-primary, #834783); /* Open Archieven primary */
     --radius: var(--border-radius-lg, 12px);
     --font: var(--font-sans, system-ui, -apple-system, sans-serif);
+    /* Host-reported safe-area insets (notches and, in fullscreen, the chat
+       composer the host overlays at the bottom). Set from main.ts. */
+    --sa-top: 0px; --sa-right: 0px; --sa-bottom: 0px; --sa-left: 0px;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
@@ -25,6 +28,10 @@
     grid-template-columns: 88px 1fr minmax(220px, 320px);
     grid-template-areas: "bar bar bar" "rail stage panel";
     height: 100vh;
+    /* Reserve the host's safe areas so nothing (notably the chat composer in
+       fullscreen) hides the rail/scan/transcript. box-sizing:border-box +
+       height:100vh means the padding shrinks the grid rather than overflowing. */
+    padding: var(--sa-top) var(--sa-right) var(--sa-bottom) var(--sa-left);
     border-radius: var(--radius);
     overflow: hidden;
   }
@@ -74,7 +81,7 @@
 <body>
 <div id="main">
   <div id="bar">
-    <span class="title">Open Archieven</span>
+    <span class="title">Open Archieven IIIF Image &amp; Transcriptie Viewer</span>
     <span class="pagelabel" id="pageLabel"></span>
     <button id="zoomOut" title="Uitzoomen">&minus;</button>
     <button id="zoomIn" title="Inzoomen">+</button>
@@ -85,8 +92,8 @@
   <div id="stage"><div id="osd"></div></div>
   <div id="panel">
     <h2>Transcriptie</h2>
-    <div id="transcript" class="empty">Laden&hellip;</div>
     <div id="meta"></div>
+    <div id="transcript" class="empty">Laden&hellip;</div>
   </div>
 </div>
 <script type="module" src="./main.ts"></script>
