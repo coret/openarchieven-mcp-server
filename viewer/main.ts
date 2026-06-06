@@ -181,6 +181,26 @@ function render(): void {
 ($('zoomOut') as HTMLButtonElement).onclick = () => viewer?.viewport.zoomBy(0.7).applyConstraints();
 ($('reset') as HTMLButtonElement).onclick = () => viewer?.viewport.goHome();
 ($('full') as HTMLButtonElement).onclick = async () => {
+  // 1) Prefer the native Fullscreen API. An OS-level fullscreen element renders
+  //    above the host's chat composer, so nothing gets covered. Only works if
+  //    the host delegates the `fullscreen` permission policy to our iframe —
+  //    the MCP Apps permission model can't request it, so feature-detect and
+  //    fall back. (requestFullscreen must be called synchronously in the click
+  //    handler to keep the user activation; do it before any await.)
+  if (document.fullscreenElement) {
+    await document.exitFullscreen().catch(() => { /* ignore */ });
+    return;
+  }
+  if (document.fullscreenEnabled) {
+    try {
+      await mainEl.requestFullscreen();
+      return; // success — :fullscreen styling applies, no composer to dodge
+    } catch {
+      /* host blocked it — fall through to host-mediated display mode */
+    }
+  }
+  // 2) Host-mediated fullscreen: the host resizes the iframe and overlays its
+  //    composer, so #main.fullscreen reserves a bottom strip.
   const ctx = app.getHostContext() as HostCtx | undefined;
   const next = ctx?.displayMode === 'fullscreen' ? 'inline' : 'fullscreen';
   if (ctx?.availableDisplayModes?.includes(next)) {

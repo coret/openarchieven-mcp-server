@@ -34,6 +34,9 @@
      bottom inset, whichever is larger). box-sizing:border-box + height:100vh
      means this padding shrinks the grid instead of overflowing. */
   #main.fullscreen { border-radius: 0; padding-bottom: max(var(--sa-bottom, 0px), 8rem); }
+  /* Native Fullscreen API (when the host permits it): the element renders above
+     the host composer, so square the corners but reserve no bottom strip. */
+  #main:fullscreen { border-radius: 0; padding-bottom: 0; background: var(--bg); }
 
   #bar {
     grid-area: bar;
@@ -82,7 +85,6 @@
   .src-row dd { margin: 0; color: var(--fg); overflow-wrap: anywhere; }
   .src-row dd a { color: var(--accent); }
   .src-link { display: inline-block; margin-top: 12px; color: var(--accent); }
-  .src-id { margin-top: 10px; font-size: 11px; color: var(--fg-2); word-break: break-all; }
   .empty { display: grid; place-items: center; height: 100%; color: var(--fg-2); }
 </style>
 </head>
