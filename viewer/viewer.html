@@ -25,18 +25,23 @@
     grid-template-columns: 88px 1fr minmax(220px, 320px);
     grid-template-areas: "bar bar bar" "rail stage panel";
     height: 100vh;
+    /* The host (Claude) overlays its chat composer across the bottom of the
+       iframe — on web/desktop too, even for inline apps — and reports it via
+       safeAreaInsets (set as --sa-* by main.ts). Apply the insets as padding on
+       the root container per the MCP Apps design guidelines, with a bottom floor
+       so the composer is cleared even when the host reports bottom:0. box-sizing
+       :border-box + height:100vh means this shrinks the grid, not overflows it. */
+    padding-top:    var(--sa-top, 0px);
+    padding-right:  var(--sa-right, 0px);
+    padding-bottom: max(var(--sa-bottom, 0px), 8rem);
+    padding-left:   var(--sa-left, 0px);
     border-radius: var(--radius);
     overflow: hidden;
   }
-  /* In fullscreen the host (Claude) overlays its chat composer across the bottom
-     of the iframe. It isn't reported via safeAreaInsets and can't be measured
-     from inside a cross-origin iframe, so reserve a fixed strip (or the host's
-     bottom inset, whichever is larger). box-sizing:border-box + height:100vh
-     means this padding shrinks the grid instead of overflowing. */
-  #main.fullscreen { border-radius: 0; padding-bottom: max(var(--sa-bottom, 0px), 8rem); }
+  #main.fullscreen { border-radius: 0; }
   /* Native Fullscreen API (when the host permits it): the element renders above
-     the host composer, so square the corners but reserve no bottom strip. */
-  #main:fullscreen { border-radius: 0; padding-bottom: 0; background: var(--bg); }
+     the host composer, so square the corners and reclaim all insets. */
+  #main:fullscreen { border-radius: 0; padding: 0; background: var(--bg); }
 
   #bar {
     grid-area: bar;
@@ -54,6 +59,8 @@
   }
   button:hover { border-color: var(--accent); }
 
+  /* Keep intra-panel scrolling from parking content under the composer. */
+  #rail, #panel { scroll-padding-bottom: max(var(--sa-bottom, 0px), 8rem); }
   #rail { grid-area: rail; overflow-y: auto; border-right: 1px solid var(--border); background: var(--bg-2); padding: 8px; }
   #rail .thumb {
     width: 100%; border: 2px solid transparent; border-radius: 6px;
@@ -86,6 +93,11 @@
   .src-row dd a { color: var(--accent); }
   .src-link { display: inline-block; margin-top: 12px; color: var(--accent); }
   .empty { display: grid; place-items: center; height: 100%; color: var(--fg-2); }
+  /* TEMPORARY diagnostic overlay (only shown when view_transcription is called
+     with debug:true). Top-left so it doesn't sit over the bottom under test. */
+  #diag { display: none; position: fixed; top: 8px; left: 8px; z-index: 9999; max-width: 60vw;
+    font: 11px/1.4 monospace; background: rgba(0,0,0,.8); color: #0f0; padding: 8px;
+    border-radius: 6px; white-space: pre-wrap; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -106,6 +118,7 @@
     <div id="transcript" class="empty">Laden&hellip;</div>
   </div>
 </div>
+<div id="diag"></div>
 <script type="module" src="./main.ts"></script>
 </body>
 </html>
