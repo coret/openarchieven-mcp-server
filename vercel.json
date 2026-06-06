@@ -6,7 +6,7 @@
   ],
   "functions": {
     "api/index.ts": {
-      "includeFiles": "{generated/**,well-known/**,index.html}"
+      "includeFiles": "{generated/**,well-known/**,index.html,dist/viewer.html}"
     }
   }
 }

@@ -100,6 +100,21 @@ All 21 operations:
 
 ---
 
+## Interactive Transcription Viewer (MCP App)
+
+Beyond the 21 auto-generated tools, the server registers one hand-written tool — **`view_transcription`** — that opens transcribed pages in an interactive [IIIF](https://iiif.io/api/image/) deep-zoom viewer ([OpenSeadragon](https://openseadragon.github.io/)) with the transcription text alongside, using the [MCP Apps](https://modelcontextprotocol.io/extensions/apps) extension (`io.modelcontextprotocol/ui`).
+
+| Tool Name | Description |
+| ---------------------- | -------------------------------------------- |
+| `view_transcription` | Open one or more transcribed pages (`ids: ["NL-SdmGA_1504889_11", …]`) in a deep-zoom IIIF viewer with the transcript; optional `highlight_term` |
+
+* **Apps-capable hosts** (Claude web/desktop, paid custom connectors) render the viewer (`ui://openarchieven/viewer.html`) in a sandboxed iframe that loads images directly from the transcription image hosts (CSP-allowlisted as `*.transkribus.eu`, `*.archief.nl`, `*.archieven.nl`, `*.memorix.nl`). Transkribus and the archief.nl iipsrv server provide true IIIF deep zoom; the `preserve*.archieven.nl` thumbnail hosts render as flat images.
+* **Plain hosts** receive a graceful fallback: a text summary with the IIIF/source URLs plus a few inline preview images.
+
+The viewer is a single self-contained `dist/viewer.html`, bundled at build time with `npm run build:viewer` (vite + `vite-plugin-singlefile`); it is **not** listed by the REST `GET /tools` endpoint, only via MCP `tools/list`.
+
+---
+
 ## Schema-Perfect Validation
 
 Uses actual OpenAPI parameter schemas. Validates:

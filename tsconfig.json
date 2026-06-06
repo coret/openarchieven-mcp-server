@@ -10,6 +10,6 @@
     "rootDir": ".",
     "noEmit": true
   },
-  "include": ["*.ts", "api/**/*.ts", "tests/**/*.ts"],
+  "include": ["*.ts", "api/**/*.ts", "tests/**/*.ts", "viewer/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

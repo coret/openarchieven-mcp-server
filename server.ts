@@ -24,6 +24,11 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import axios from 'axios';
 import { Redis } from 'ioredis';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import {
+  registerAppTool,
+  registerAppResource,
+  RESOURCE_MIME_TYPE,
+} from '@modelcontextprotocol/ext-apps/server';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
@@ -279,6 +284,225 @@ async function callUpstream(
   return res.data;
 }
 
+// ─── MCP App: interactive IIIF viewer ─────────────────────────────────────────
+//
+// `view_transcription` declares a `ui://` MCP App resource (an OpenSeadragon
+// deep-zoom viewer + transcription panel) for hosts that support MCP Apps, and
+// returns a text summary plus inline preview images as the fallback for hosts
+// that don't. The viewer (dist/viewer.html) loads IIIF tiles directly.
+
+const VIEWER_URI = 'ui://openarchieven/viewer.html';
+
+const VIEWER_HTML: string = (() => {
+  try {
+    return fs.readFileSync(path.join(__dirname, 'dist', 'viewer.html'), 'utf8');
+  } catch (err) {
+    log.warn(
+      { err: err instanceof Error ? err.message : String(err) },
+      'dist/viewer.html missing — view_transcription UI disabled (run: npm run build:viewer)',
+    );
+    return '';
+  }
+})();
+
+// IIIF / image hosts used across the transcription projects — the iframe CSP
+// allowlist. Wildcards (supported by MCP Apps CSP) cover the whole host families:
+//   *.transkribus.eu  → files.transkribus.eu (IIIF deep zoom)
+//   *.archief.nl      → service.archief.nl   (iipsrv IIIF deep zoom)
+//   *.archieven.nl    → preserve / preserve2 / preserve-nha / preserve-bhic … (flat thumbs)
+//   *.memorix.nl      → images.memorix.nl
+// All of these send `Access-Control-Allow-Origin: *`, so OpenSeadragon can render
+// them to canvas. connectDomains = info.json XHR; resourceDomains = tiles/<img>.
+const IIIF_HOSTS = [
+  'https://*.transkribus.eu',
+  'https://*.archief.nl',
+  'https://*.archieven.nl',
+  'https://*.memorix.nl',
+];
+const VIEWER_CSP = { connectDomains: IIIF_HOSTS, resourceDomains: IIIF_HOSTS };
+
+const SHOW_TX = TOOLS.find((t) => t.name === 'show_transcription');
+
+interface ViewerPage {
+  id: string;
+  page: string;
+  /** IIIF info.json URL when derivable (enables deep zoom). */
+  infoJson?: string;
+  /** Plain image URL fallback (non-IIIF projects). */
+  imageUrl?: string;
+  thumbUrl?: string;
+  transcript: string;
+  sourceUrl?: string;
+  archive?: string;
+}
+
+/**
+ * IIIF `thumb_url` → info.json (deep zoom) when derivable, else a flat image URL.
+ *
+ * The IIIF Image API region segment `/full/` is the reliable marker: both
+ * Transkribus (`…/iiif/2/{id}/full/512,/0/default.jpg`) and the archief.nl iipsrv
+ * server (`…/iipsrv?IIIF=/…/{id}.jp2/full/256,/0/default.jpg`) embed it, and
+ * stripping everything from `/full/` onward + `/info.json` yields a valid
+ * descriptor for both. Non-IIIF thumbnail hosts (preserve*.archieven.nl, served as
+ * `…​.jpg?format=thumb`) have no `/full/` and fall back to a flat image source.
+ */
+function deriveTileSource(thumbUrl?: string): Pick<ViewerPage, 'infoJson' | 'imageUrl'> {
+  if (!thumbUrl) return {};
+  if (thumbUrl.includes('/full/')) {
+    return { infoJson: `${thumbUrl.split('/full/')[0]}/info.json` };
+  }
+  return { imageUrl: thumbUrl };
+}
+
+/** IIIF `thumb_url` → a larger sized derivative for the inline (Route A) fallback image. */
+function iiifDerivative(thumbUrl: string, size = '1024,'): string {
+  if (thumbUrl.includes('/full/')) {
+    return `${thumbUrl.split('/full/')[0]}/full/${size}/0/default.jpg`;
+  }
+  return thumbUrl;
+}
+
+/** Fetch an image and base64-encode it (cached via Redis like upstream JSON). */
+async function fetchImageDataUrl(
+  url: string,
+): Promise<{ data: string; mimeType: string } | null> {
+  const key = `mcp:img:${url}`;
+  const cached = (await cacheGet(key)) as { data: string; mimeType: string } | null;
+  if (cached) return cached;
+  try {
+    await rateLimiter.acquire();
+    const res = await axios.get<ArrayBuffer>(url, {
+      responseType: 'arraybuffer',
+      headers: { 'User-Agent': USER_AGENT },
+      timeout: 15_000,
+    });
+    const mimeType = String(res.headers['content-type'] ?? 'image/jpeg').split(';')[0] ?? 'image/jpeg';
+    const data = Buffer.from(res.data).toString('base64');
+    const out = { data, mimeType };
+    // Archival scans are stable — reuse the show_transcription TTL (1 day).
+    await cacheSet(key, out, 'show_transcription');
+    return out;
+  } catch (err) {
+    log.warn({ url, err: err instanceof Error ? err.message : String(err) }, 'image fetch failed');
+    return null;
+  }
+}
+
+async function fetchTranscriptionPage(id: string): Promise<ViewerPage> {
+  if (!SHOW_TX) throw new Error('show_transcription tool not available');
+  const data = (await callUpstream(SHOW_TX, { id, lang: 'nl' })) as {
+    page?: unknown;
+    transcript?: unknown;
+    thumb_url?: string;
+    source_url?: string;
+    source_archive?: { name?: string };
+  };
+  const thumbUrl = data?.thumb_url;
+  return {
+    id,
+    page: String(data?.page ?? ''),
+    transcript: String(data?.transcript ?? ''),
+    thumbUrl,
+    sourceUrl: data?.source_url,
+    archive: data?.source_archive?.name,
+    ...deriveTileSource(thumbUrl),
+  };
+}
+
+const MAX_INLINE_IMAGES = 3;
+
+type ViewerContent =
+  | { type: 'text'; text: string }
+  | { type: 'image'; data: string; mimeType: string };
+
+function registerViewer(server: McpServer): void {
+  registerAppTool(
+    server,
+    'view_transcription',
+    {
+      title: 'View transcription (IIIF image + text)',
+      description:
+        'Open one or more transcribed document pages in an interactive deep-zoom viewer ' +
+        'with the transcription text alongside. Pass page identifiers returned by ' +
+        'search_transcriptions / browse_transcriptions (form <ISIL>_<archive>_<page>, ' +
+        'e.g. NL-SdmGA_1504889_11). Optionally highlight a term in the transcript. Hosts ' +
+        'without MCP Apps support receive a text summary plus inline preview images.',
+      inputSchema: {
+        ids: z
+          .array(z.string())
+          .min(1)
+          .max(20)
+          .describe('Transcription page identifiers, e.g. ["NL-SdmGA_1504889_11"].'),
+        highlight_term: z
+          .string()
+          .optional()
+          .describe('Optional term to highlight in the transcription text.'),
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: true },
+      _meta: { ui: { resourceUri: VIEWER_URI } },
+    },
+    async ({ ids, highlight_term }) => {
+      const settled = await Promise.allSettled(ids.map(fetchTranscriptionPage));
+      const pages = settled
+        .filter((r): r is PromiseFulfilledResult<ViewerPage> => r.status === 'fulfilled')
+        .map((r) => r.value);
+      const failed = ids.filter((_, i) => settled[i]?.status === 'rejected');
+
+      if (pages.length === 0) {
+        return {
+          content: [{ type: 'text' as const, text: `Could not load any of: ${ids.join(', ')}` }],
+          isError: true,
+        };
+      }
+
+      // Text summary = what a non-Apps host shows the model/user (with IIIF URLs).
+      const summaryLines = pages.map(
+        (p) =>
+          `• ${p.id} (page ${p.page}${p.archive ? `, ${p.archive}` : ''})` +
+          (p.sourceUrl ? `\n  source: ${p.sourceUrl}` : '') +
+          (p.thumbUrl ? `\n  image:  ${p.thumbUrl}` : ''),
+      );
+      const summary =
+        `Opened viewer with ${pages.length} page(s):\n${summaryLines.join('\n')}` +
+        (failed.length ? `\n\nFailed to load: ${failed.join(', ')}` : '');
+
+      const content: ViewerContent[] = [{ type: 'text', text: summary }];
+
+      // Route A fallback: inline a few preview images so plain hosts show a picture.
+      for (const p of pages.slice(0, MAX_INLINE_IMAGES)) {
+        if (!p.thumbUrl) continue;
+        const img = await fetchImageDataUrl(iiifDerivative(p.thumbUrl));
+        if (img) content.push({ type: 'image', data: img.data, mimeType: img.mimeType });
+      }
+
+      return {
+        content,
+        structuredContent: { pages, highlightTerm: highlight_term ?? '' },
+      };
+    },
+  );
+
+  registerAppResource(
+    server,
+    'Open Archieven IIIF viewer',
+    VIEWER_URI,
+    {
+      mimeType: RESOURCE_MIME_TYPE,
+      description: 'Deep-zoom IIIF viewer with transcription overlay.',
+    },
+    async () => ({
+      contents: [
+        {
+          uri: VIEWER_URI,
+          mimeType: RESOURCE_MIME_TYPE,
+          text: VIEWER_HTML,
+          _meta: { ui: { csp: VIEWER_CSP } },
+        },
+      ],
+    }),
+  );
+}
+
 // ─── MCP Server factory ───────────────────────────────────────────────────────
 
 function createMcpServer(): McpServer {
@@ -321,6 +545,8 @@ function createMcpServer(): McpServer {
   };
 
   for (const tool of TOOLS) registerTool(tool.name, tool);
+
+  registerViewer(server);
 
   return server;
 }

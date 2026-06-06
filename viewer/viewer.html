@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Open Archieven viewer</title>
+<style>
+  :root {
+    --bg: var(--color-background-primary, #ffffff);
+    --bg-2: var(--color-background-secondary, #f4f4f5);
+    --fg: var(--color-text-primary, #18181b);
+    --fg-2: var(--color-text-secondary, #71717a);
+    --border: var(--color-border-primary, #e4e4e7);
+    --accent: var(--color-accent-primary, #834783); /* Open Archieven primary */
+    --radius: var(--border-radius-lg, 12px);
+    --font: var(--font-sans, system-ui, -apple-system, sans-serif);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: var(--font); color: var(--fg); background: var(--bg); }
+
+  #main {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-template-columns: 88px 1fr minmax(220px, 320px);
+    grid-template-areas: "bar bar bar" "rail stage panel";
+    height: 100vh;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  #main.fullscreen { border-radius: 0; }
+
+  #bar {
+    grid-area: bar;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-2);
+  }
+  #bar .title { font-weight: 600; font-size: 14px; margin-right: auto; color: var(--accent); }
+  #bar .pagelabel { color: var(--fg-2); font-size: 13px; }
+  button {
+    font: inherit; font-size: 13px;
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--fg); border-radius: 8px; padding: 5px 10px; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+
+  #rail { grid-area: rail; overflow-y: auto; border-right: 1px solid var(--border); background: var(--bg-2); padding: 8px; }
+  #rail .thumb {
+    width: 100%; border: 2px solid transparent; border-radius: 6px;
+    margin-bottom: 8px; cursor: pointer; display: block; background: var(--bg);
+  }
+  #rail .thumb.active { border-color: var(--accent); }
+  #rail .thumb img { width: 100%; display: block; border-radius: 4px; }
+  #rail .thumb .n { font-size: 11px; color: var(--fg-2); text-align: center; padding: 2px 0; }
+
+  #stage { grid-area: stage; position: relative; background: #1a1a1a; }
+  #osd { position: absolute; inset: 0; }
+
+  #panel { grid-area: panel; overflow-y: auto; padding: 14px 16px; border-left: 1px solid var(--border); }
+  #panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--fg-2); margin: 0 0 8px; }
+  #transcript { white-space: pre-wrap; line-height: 1.55; font-size: 14px; }
+  #transcript mark { background: #fde68a; color: inherit; padding: 0 1px; border-radius: 2px; }
+  #meta { margin-top: 16px; font-size: 12px; color: var(--fg-2); }
+  #meta a { color: var(--accent); word-break: break-all; }
+  .empty { display: grid; place-items: center; height: 100%; color: var(--fg-2); }
+</style>
+</head>
+<body>
+<div id="main">
+  <div id="bar">
+    <span class="title">Open Archieven</span>
+    <span class="pagelabel" id="pageLabel"></span>
+    <button id="zoomOut" title="Uitzoomen">&minus;</button>
+    <button id="zoomIn" title="Inzoomen">+</button>
+    <button id="reset" title="Passend">Passend</button>
+    <button id="full" title="Volledig scherm">&#x2922;</button>
+  </div>
+  <div id="rail"></div>
+  <div id="stage"><div id="osd"></div></div>
+  <div id="panel">
+    <h2>Transcriptie</h2>
+    <div id="transcript" class="empty">Laden&hellip;</div>
+    <div id="meta"></div>
+  </div>
+</div>
+<script type="module" src="./main.ts"></script>
+</body>
+</html>
