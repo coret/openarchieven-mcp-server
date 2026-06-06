@@ -157,7 +157,7 @@ function applyHostContext(ctx: HostCtx | undefined): void {
 }
 
 // ── MCP Apps wiring ───────────────────────────────────────────────────────────
-const app = new App({ name: 'Open Archieven viewer', version: '1.0.0' });
+const app = new App({ name: 'Open Archieven viewer', version: '1.1.0' });
 
 // Set handlers BEFORE connect() so the initial tool result is not missed.
 app.ontoolresult = (params) => {

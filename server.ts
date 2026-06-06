@@ -508,7 +508,7 @@ function registerViewer(server: McpServer): void {
 function createMcpServer(): McpServer {
   const server = new McpServer({
     name: 'openarchieven',
-    version: '1.0.0',
+    version: '1.1.0',
   });
 
   const registerTool = (name: string, tool: ToolDef) => {

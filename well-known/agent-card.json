@@ -8,7 +8,7 @@
     "organization": "Coret Genealogy",
     "url": "https://genealogie.coret.org"
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "documentationUrl": "https://github.com/coret/openarchieven-mcp-server",
   "capabilities": {
     "streaming": true,
