@@ -319,9 +319,21 @@ const IIIF_HOSTS = [
   'https://*.archieven.nl',
   'https://*.memorix.nl',
 ];
-const VIEWER_CSP = { connectDomains: IIIF_HOSTS, resourceDomains: IIIF_HOSTS };
+// Archive logos (`…/img/archives/<ISIL>.png`) are served from openarchieven.nl
+// with `Access-Control-Allow-Origin: *`; allow them as <img> resources.
+const VIEWER_CSP = {
+  connectDomains: IIIF_HOSTS,
+  resourceDomains: [...IIIF_HOSTS, 'https://www.openarchieven.nl'],
+};
 
 const SHOW_TX = TOOLS.find((t) => t.name === 'show_transcription');
+
+/** Archival reference (the fonds `archive_number` or the `inventory_number`). */
+interface SourceRef {
+  nr?: string;
+  title?: string;
+  url?: string;
+}
 
 interface ViewerPage {
   id: string;
@@ -333,7 +345,23 @@ interface ViewerPage {
   thumbUrl?: string;
   transcript: string;
   sourceUrl?: string;
+  /** Holding institution (source_archive). */
   archive?: string;
+  archiveIsil?: string;
+  archiveLogo?: string;
+  /** archive_number — the fonds/collection the page belongs to. */
+  archiveRef?: SourceRef;
+  /** inventory_number within the fonds. */
+  inventoryRef?: SourceRef;
+}
+
+/** Keep a reference only if it carries something; trim blanks. */
+function cleanRef(r?: { nr?: unknown; title?: unknown; url?: unknown }): SourceRef | undefined {
+  if (!r) return undefined;
+  const nr = String(r.nr ?? '').trim() || undefined;
+  const title = String(r.title ?? '').trim() || undefined;
+  const url = String(r.url ?? '').trim() || undefined;
+  return nr || title || url ? { nr, title, url } : undefined;
 }
 
 /**
@@ -395,9 +423,12 @@ async function fetchTranscriptionPage(id: string): Promise<ViewerPage> {
     transcript?: unknown;
     thumb_url?: string;
     source_url?: string;
-    source_archive?: { name?: string };
+    source_archive?: { isil?: string; name?: string };
+    archive_number?: { nr?: string; title?: string; url?: string };
+    inventory_number?: { nr?: string; title?: string; url?: string };
   };
   const thumbUrl = data?.thumb_url;
+  const isil = data?.source_archive?.isil?.trim() || undefined;
   return {
     id,
     page: String(data?.page ?? ''),
@@ -405,6 +436,12 @@ async function fetchTranscriptionPage(id: string): Promise<ViewerPage> {
     thumbUrl,
     sourceUrl: data?.source_url,
     archive: data?.source_archive?.name,
+    archiveIsil: isil,
+    archiveLogo: isil
+      ? `https://www.openarchieven.nl/img/archives/${encodeURIComponent(isil)}.png`
+      : undefined,
+    archiveRef: cleanRef(data?.archive_number),
+    inventoryRef: cleanRef(data?.inventory_number),
     ...deriveTileSource(thumbUrl),
   };
 }
@@ -456,11 +493,18 @@ function registerViewer(server: McpServer): void {
       }
 
       // Text summary = what a non-Apps host shows the model/user (with IIIF URLs).
-      const summaryLines = pages.map(
-        (p) =>
-          `• ${p.id} (page ${p.page}${p.archive ? `, ${p.archive}` : ''})` +
-          (p.sourceUrl ? `\n  source: ${p.sourceUrl}` : '') +
-          (p.thumbUrl ? `\n  image:  ${p.thumbUrl}` : ''),
+      const refLine = (r?: SourceRef) => [r?.nr, r?.title].filter(Boolean).join(' — ');
+      const summaryLines = pages.map((p) =>
+        [
+          `• ${p.id} (page ${p.page})`,
+          p.archive ? `  archive:   ${p.archive}${p.archiveIsil ? ` (${p.archiveIsil})` : ''}` : '',
+          p.archiveRef ? `  fonds:     ${refLine(p.archiveRef)}` : '',
+          p.inventoryRef ? `  inventory: ${refLine(p.inventoryRef)}` : '',
+          p.sourceUrl ? `  source:    ${p.sourceUrl}` : '',
+          p.thumbUrl ? `  image:     ${p.thumbUrl}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n'),
       );
       const summary =
         `Opened viewer with ${pages.length} page(s):\n${summaryLines.join('\n')}` +

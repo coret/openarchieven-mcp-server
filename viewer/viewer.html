@@ -14,9 +14,6 @@
     --accent: var(--color-accent-primary, #834783); /* Open Archieven primary */
     --radius: var(--border-radius-lg, 12px);
     --font: var(--font-sans, system-ui, -apple-system, sans-serif);
-    /* Host-reported safe-area insets (notches and, in fullscreen, the chat
-       composer the host overlays at the bottom). Set from main.ts. */
-    --sa-top: 0px; --sa-right: 0px; --sa-bottom: 0px; --sa-left: 0px;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
@@ -28,10 +25,6 @@
     grid-template-columns: 88px 1fr minmax(220px, 320px);
     grid-template-areas: "bar bar bar" "rail stage panel";
     height: 100vh;
-    /* Reserve the host's safe areas so nothing (notably the chat composer in
-       fullscreen) hides the rail/scan/transcript. box-sizing:border-box +
-       height:100vh means the padding shrinks the grid rather than overflowing. */
-    padding: var(--sa-top) var(--sa-right) var(--sa-bottom) var(--sa-left);
     border-radius: var(--radius);
     overflow: hidden;
   }
@@ -73,15 +66,25 @@
   #panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--fg-2); margin: 0 0 8px; }
   #transcript { white-space: pre-wrap; line-height: 1.55; font-size: 14px; }
   #transcript mark { background: #fde68a; color: inherit; padding: 0 1px; border-radius: 2px; }
-  #meta { margin-top: 16px; font-size: 12px; color: var(--fg-2); }
-  #meta a { color: var(--accent); word-break: break-all; }
+  #meta { margin: 0 0 16px; font-size: 12px; color: var(--fg-2); }
+  .src-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .src-logo { max-height: 40px; max-width: 120px; object-fit: contain; flex: none; }
+  .src-name { font-size: 13px; font-weight: 600; color: var(--fg); line-height: 1.25; }
+  .src-isil { font-size: 11px; color: var(--fg-2); }
+  .src-rows { margin: 0; display: grid; gap: 6px; }
+  .src-row { display: grid; grid-template-columns: 72px 1fr; gap: 8px; align-items: baseline; }
+  .src-row dt { color: var(--fg-2); }
+  .src-row dd { margin: 0; color: var(--fg); overflow-wrap: anywhere; }
+  .src-row dd a { color: var(--accent); }
+  .src-link { display: inline-block; margin-top: 12px; color: var(--accent); }
+  .src-id { margin-top: 10px; font-size: 11px; color: var(--fg-2); word-break: break-all; }
   .empty { display: grid; place-items: center; height: 100%; color: var(--fg-2); }
 </style>
 </head>
 <body>
 <div id="main">
   <div id="bar">
-    <span class="title">Open Archieven IIIF Image &amp; Transcriptie Viewer</span>
+    <span class="title">IIIF Image &amp; Transcriptie Viewer</span>
     <span class="pagelabel" id="pageLabel"></span>
     <button id="zoomOut" title="Uitzoomen">&minus;</button>
     <button id="zoomIn" title="Inzoomen">+</button>

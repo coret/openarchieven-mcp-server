@@ -2,6 +2,12 @@ import { App } from '@modelcontextprotocol/ext-apps';
 import OpenSeadragon from 'openseadragon';
 
 // ── Shape of each page in the tool's structuredContent (see server.ts) ──────
+interface SourceRef {
+  nr?: string;
+  title?: string;
+  url?: string;
+}
+
 interface ViewerPage {
   id: string;
   page: string;
@@ -12,7 +18,14 @@ interface ViewerPage {
   thumbUrl?: string;
   transcript: string;
   sourceUrl?: string;
+  /** Holding institution (source_archive). */
   archive?: string;
+  archiveIsil?: string;
+  archiveLogo?: string;
+  /** archive_number — the fonds/collection the page belongs to. */
+  archiveRef?: SourceRef;
+  /** inventory_number within the fonds. */
+  inventoryRef?: SourceRef;
 }
 
 interface HostCtx {
@@ -88,6 +101,17 @@ function renderRail(): void {
   });
 }
 
+/** A labelled source row (archive / inventory); empty when the ref carries nothing. */
+function refRow(label: string, r?: SourceRef): string {
+  if (!r) return '';
+  const inner = [r.nr, r.title].filter((x): x is string => !!x).map(escapeHtml).join(' &middot; ');
+  if (!inner && !r.url) return '';
+  const value = r.url
+    ? `<a href="${escapeHtml(r.url)}" target="_blank" rel="noopener">${inner || escapeHtml(r.url)}</a>`
+    : inner;
+  return `<div class="src-row"><dt>${label}</dt><dd>${value}</dd></div>`;
+}
+
 function renderPanel(): void {
   const p = pages[current];
   if (!p) return;
@@ -96,12 +120,33 @@ function renderPanel(): void {
   t.innerHTML = p.transcript
     ? highlight(p.transcript, highlightTerm)
     : '<span class="empty">Geen transcriptietekst.</span>';
+
+  const head =
+    p.archive || p.archiveLogo
+      ? `<div class="src-head">` +
+        (p.archiveLogo ? `<img class="src-logo" src="${escapeHtml(p.archiveLogo)}" alt="">` : '') +
+        `<div>` +
+        (p.archive ? `<div class="src-name">${escapeHtml(p.archive)}</div>` : '') +
+        (p.archiveIsil ? `<div class="src-isil">${escapeHtml(p.archiveIsil)}</div>` : '') +
+        `</div></div>`
+      : '';
+
   $('meta').innerHTML =
-    (p.archive ? `${escapeHtml(p.archive)}<br>` : '') +
-    `Pagina ${escapeHtml(p.page || String(current + 1))} &middot; id ${escapeHtml(p.id)}` +
+    head +
+    `<dl class="src-rows">` +
+    refRow('Archief', p.archiveRef) +
+    refRow('Inventaris', p.inventoryRef) +
+    `<div class="src-row"><dt>Pagina</dt><dd>${escapeHtml(p.page || String(current + 1))}</dd></div>` +
+    `</dl>` +
     (p.sourceUrl
-      ? `<br><a href="${escapeHtml(p.sourceUrl)}" target="_blank" rel="noopener">Bekijk bij bronarchief &rarr;</a>`
-      : '');
+      ? `<a class="src-link" href="${escapeHtml(p.sourceUrl)}" target="_blank" rel="noopener">Bekijk bij bronarchief &rarr;</a>`
+      : '') +
+    `<div class="src-id">id ${escapeHtml(p.id)}</div>`;
+
+  // Not every archive has a logo (404) — drop the image rather than show a broken icon.
+  const logo = document.querySelector<HTMLImageElement>('#meta .src-logo');
+  logo?.addEventListener('error', () => logo.remove());
+
   $('pageLabel').textContent = `Pagina ${current + 1} / ${pages.length}`;
 }
 
