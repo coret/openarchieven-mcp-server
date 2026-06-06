@@ -140,8 +140,7 @@ function renderPanel(): void {
     `</dl>` +
     (p.sourceUrl
       ? `<a class="src-link" href="${escapeHtml(p.sourceUrl)}" target="_blank" rel="noopener">Bekijk bij bronarchief &rarr;</a>`
-      : '') +
-    `<div class="src-id">id ${escapeHtml(p.id)}</div>`;
+      : '');
 
   // Not every archive has a logo (404) — drop the image rather than show a broken icon.
   const logo = document.querySelector<HTMLImageElement>('#meta .src-logo');

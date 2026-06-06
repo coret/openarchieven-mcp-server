@@ -28,7 +28,12 @@
     border-radius: var(--radius);
     overflow: hidden;
   }
-  #main.fullscreen { border-radius: 0; }
+  /* In fullscreen the host (Claude) overlays its chat composer across the bottom
+     of the iframe. It isn't reported via safeAreaInsets and can't be measured
+     from inside a cross-origin iframe, so reserve a fixed strip (or the host's
+     bottom inset, whichever is larger). box-sizing:border-box + height:100vh
+     means this padding shrinks the grid instead of overflowing. */
+  #main.fullscreen { border-radius: 0; padding-bottom: max(var(--sa-bottom, 0px), 8rem); }
 
   #bar {
     grid-area: bar;
@@ -94,8 +99,8 @@
   <div id="rail"></div>
   <div id="stage"><div id="osd"></div></div>
   <div id="panel">
-    <h2>Transcriptie</h2>
     <div id="meta"></div>
+    <h2>Transcriptie</h2>
     <div id="transcript" class="empty">Laden&hellip;</div>
   </div>
 </div>
