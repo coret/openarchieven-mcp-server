@@ -94,11 +94,6 @@
   .src-row dd a { color: var(--accent); }
   .src-link { display: inline-block; margin-top: 12px; color: var(--accent); }
   .empty { display: grid; place-items: center; height: 100%; color: var(--fg-2); }
-  /* TEMPORARY diagnostic overlay (only shown when view_transcription is called
-     with debug:true). Top-left so it doesn't sit over the bottom under test. */
-  #diag { display: none; position: fixed; top: 8px; left: 8px; z-index: 9999; max-width: 60vw;
-    font: 11px/1.4 monospace; background: rgba(0,0,0,.8); color: #0f0; padding: 8px;
-    border-radius: 6px; white-space: pre-wrap; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -119,7 +114,6 @@
     <div id="transcript" class="empty">Laden&hellip;</div>
   </div>
 </div>
-<div id="diag"></div>
 <script type="module" src="./main.ts"></script>
 </body>
 </html>

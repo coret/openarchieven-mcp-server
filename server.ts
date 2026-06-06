@@ -474,15 +474,11 @@ function registerViewer(server: McpServer): void {
           .string()
           .optional()
           .describe('Optional term to highlight in the transcription text.'),
-        debug: z
-          .boolean()
-          .optional()
-          .describe('TEMPORARY: show a diagnostic overlay of the host layout context in the viewer.'),
       },
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: true },
       _meta: { ui: { resourceUri: VIEWER_URI } },
     },
-    async ({ ids, highlight_term, debug }) => {
+    async ({ ids, highlight_term }) => {
       const settled = await Promise.allSettled(ids.map(fetchTranscriptionPage));
       const pages = settled
         .filter((r): r is PromiseFulfilledResult<ViewerPage> => r.status === 'fulfilled')
@@ -525,7 +521,7 @@ function registerViewer(server: McpServer): void {
 
       return {
         content,
-        structuredContent: { pages, highlightTerm: highlight_term ?? '', debug: debug === true },
+        structuredContent: { pages, highlightTerm: highlight_term ?? '' },
       };
     },
   );

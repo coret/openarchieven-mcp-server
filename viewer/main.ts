@@ -35,7 +35,6 @@ interface HostCtx {
   availableDisplayModes?: string[];
   /** Notches and, on web/desktop, the host's chat composer overlaying the bottom. */
   safeAreaInsets?: { top: number; right: number; bottom: number; left: number };
-  containerDimensions?: unknown;
 }
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
@@ -49,7 +48,6 @@ let pages: ViewerPage[] = [];
 let highlightTerm = '';
 let current = 0;
 let viewer: OpenSeadragon.Viewer | null = null;
-let debug = false; // TEMPORARY: set by view_transcription({debug:true}) — see renderDiag()
 
 // ── OpenSeadragon tile source from a page ───────────────────────────────────
 function tileSourceFor(p: ViewerPage): string | { type: string; url: string } | null {
@@ -212,35 +210,6 @@ function render(): void {
   }
 };
 
-// ── TEMPORARY diagnostic ────────────────────────────────────────────────────
-// Surfaces the live host context so we can see what Claude actually reports
-// (displayMode, safeAreaInsets, containerDimensions) vs the iframe's own heights.
-// Only shown when the tool is called with debug:true. Remove once the composer
-// overlap is confirmed fixed and the bottom floor is tuned.
-function renderDiag(): void {
-  if (!debug) return;
-  const el = document.getElementById('diag');
-  if (!el) return;
-  const ctx = (app.getHostContext() ?? {}) as HostCtx;
-  el.textContent = JSON.stringify(
-    {
-      displayMode: ctx.displayMode,
-      availableDisplayModes: ctx.availableDisplayModes,
-      safeAreaInsets: ctx.safeAreaInsets,
-      containerDimensions: ctx.containerDimensions,
-      'window.innerHeight': window.innerHeight,
-      'documentElement.clientHeight': document.documentElement.clientHeight,
-    },
-    null,
-    2,
-  );
-  el.style.display = 'block';
-}
-document.getElementById('diag')?.addEventListener('click', () => {
-  const el = document.getElementById('diag');
-  if (el) el.style.display = 'none';
-});
-
 // ── Host theming ──────────────────────────────────────────────────────────────
 function applyHostContext(ctx: HostCtx | undefined): void {
   if (!ctx) return;
@@ -259,7 +228,6 @@ function applyHostContext(ctx: HostCtx | undefined): void {
   root.setProperty('--sa-bottom', `${ins?.bottom ?? 0}px`);
   root.setProperty('--sa-left', `${ins?.left ?? 0}px`);
   mainEl.classList.toggle('fullscreen', ctx.displayMode === 'fullscreen');
-  renderDiag();
 }
 
 // ── MCP Apps wiring ───────────────────────────────────────────────────────────
@@ -267,16 +235,10 @@ const app = new App({ name: 'Open Archieven viewer', version: '1.1.0' });
 
 // Set handlers BEFORE connect() so the initial tool result is not missed.
 app.ontoolresult = (params) => {
-  const sc = (params.structuredContent ?? {}) as {
-    pages?: ViewerPage[];
-    highlightTerm?: string;
-    debug?: boolean;
-  };
+  const sc = (params.structuredContent ?? {}) as { pages?: ViewerPage[]; highlightTerm?: string };
   pages = Array.isArray(sc.pages) ? sc.pages : [];
   highlightTerm = sc.highlightTerm ?? '';
-  debug = sc.debug === true;
   render();
-  renderDiag();
 };
 app.onhostcontextchanged = (ctx) => applyHostContext(ctx as unknown as HostCtx);
 app.onteardown = async () => { viewer?.destroy(); viewer = null; return {}; };
