@@ -56,7 +56,11 @@
   #rail .thumb .n { font-size: 11px; color: var(--fg-2); text-align: center; padding: 2px 0; }
 
   #stage { grid-area: stage; position: relative; background: #1a1a1a; }
-  #osd { position: absolute; inset: 0; }
+  /* OSD overwrites the element's `position` to `relative` on init, which would
+     break `position:absolute; inset:0` sizing and collapse the stage to 0 height
+     (blank/black viewer). Size it via height:100% against the definite-height
+     grid cell instead. */
+  #osd { width: 100%; height: 100%; }
 
   #panel { grid-area: panel; overflow-y: auto; padding: 14px 16px; border-left: 1px solid var(--border); }
   #panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--fg-2); margin: 0 0 8px; }
