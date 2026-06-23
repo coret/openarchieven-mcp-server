@@ -318,6 +318,7 @@ const IIIF_HOSTS = [
   'https://*.archief.nl',
   'https://*.archieven.nl',
   'https://*.memorix.nl',
+  'https://*.razu.nl',
 ];
 // Archive logos (`…/img/archives/<ISIL>.png`) are served from openarchieven.nl
 // with `Access-Control-Allow-Origin: *`; allow them as <img> resources.
