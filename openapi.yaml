@@ -7,7 +7,7 @@ info:
     The Open Archives API provides access to the genealogical dataset of Dutch, Belgian
     and French archives and associations. It allows searching and retrieving genealogical
     records, statistical data on archives, source types, event types, family names, first
-    names, professions, as well as related historical data such as Dutch weather measurements
+    names, professions, as well as related historical data such as weather measurements
     and Dutch census data. **API calls are throttled per IP address to 4 requests per second**,
     contact Open Archives to increase this value.
   contact:
@@ -63,6 +63,18 @@ paths:
           schema:
             type: string
           example: bhi
+        - name: not_archive
+          in: query
+          required: false
+          description: >
+            When set to `1` in combination with `archive_code`, results from the
+            selected archive are excluded instead of the search being restricted
+            to it. Has no effect without `archive_code`.
+          schema:
+            type: integer
+            enum: [0, 1]
+            default: 0
+          example: 1
         - name: number_show
           in: query
           required: false
@@ -124,10 +136,15 @@ paths:
         - name: start
           in: query
           required: false
-          description: Initial result offset for paging.
+          description: >
+            Initial result offset for paging. Deep pagination is not supported:
+            the maximum allowed value is 10000. Requests with `start` greater
+            than 10000 are rejected with HTTP 400 (error_code 50).
           schema:
             type: integer
             default: 0
+            minimum: 0
+            maximum: 10000
         - name: lang
           in: query
           required: false
@@ -203,6 +220,11 @@ paths:
                   value:
                     error_code: 21
                     error_description: Missing required name
+                startExceedsMax:
+                  summary: Deep pagination not allowed (start > 10000)
+                  value:
+                    error_code: 50
+                    error_description: Value of start exceeds defined maximum (10000); deep pagination is not supported
         "429":
           description: Too Many Requests — rate limit of 4 requests per second per IP exceeded.
 
@@ -476,10 +498,15 @@ paths:
         - name: start
           in: query
           required: false
-          description: Initial result offset for paging.
+          description: >
+            Initial result offset for paging. Deep pagination is not supported:
+            the maximum allowed value is 10000. Requests with `start` greater
+            than 10000 are rejected with HTTP 400 (error_code 50).
           schema:
             type: integer
             default: 0
+            minimum: 0
+            maximum: 10000
       responses:
         "200":
           description: successful operation
@@ -489,6 +516,16 @@ paths:
                 $ref: '#/components/schemas/Search2Response'
         "400":
           description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                startExceedsMax:
+                  summary: Deep pagination not allowed (start > 10000)
+                  value:
+                    error_code: 50
+                    error_description: Value of start exceeds defined maximum (10000); deep pagination is not supported
         "429":
           description: Too Many Requests — rate limit of 4 requests per second per IP exceeded.
 
@@ -528,10 +565,15 @@ paths:
         - name: start
           in: query
           required: false
-          description: Initial result offset for paging.
+          description: >
+            Initial result offset for paging. Deep pagination is not supported:
+            the maximum allowed value is 10000. Requests with `start` greater
+            than 10000 are rejected with HTTP 400 (error_code 50).
           schema:
             type: integer
             default: 0
+            minimum: 0
+            maximum: 10000
       responses:
         "200":
           description: successful operation
@@ -541,6 +583,16 @@ paths:
                 $ref: '#/components/schemas/Search2Response'
         "400":
           description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                startExceedsMax:
+                  summary: Deep pagination not allowed (start > 10000)
+                  value:
+                    error_code: 50
+                    error_description: Value of start exceeds defined maximum (10000); deep pagination is not supported
         "429":
           description: Too Many Requests — rate limit of 4 requests per second per IP exceeded.
 
@@ -586,10 +638,15 @@ paths:
         - name: start
           in: query
           required: false
-          description: Initial result offset for paging.
+          description: >
+            Initial result offset for paging. Deep pagination is not supported:
+            the maximum allowed value is 10000. Requests with `start` greater
+            than 10000 are rejected with HTTP 400 (error_code 50).
           schema:
             type: integer
             default: 0
+            minimum: 0
+            maximum: 10000
       responses:
         "200":
           description: successful operation
@@ -599,6 +656,16 @@ paths:
                 $ref: '#/components/schemas/Search2Response'
         "400":
           description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                startExceedsMax:
+                  summary: Deep pagination not allowed (start > 10000)
+                  value:
+                    error_code: 50
+                    error_description: Value of start exceeds defined maximum (10000); deep pagination is not supported
         "429":
           description: Too Many Requests — rate limit of 4 requests per second per IP exceeded.
 
