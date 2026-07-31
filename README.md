@@ -54,13 +54,22 @@ Claude will call the matching tool (`search_records`, `show_record`,
 return links to the corresponding record pages on
 `https://www.openarchieven.nl`.
 
-## Self-hosted (stdio)
+## Self-hosted
 
-If you prefer running the server locally as a stdio MCP server:
+The server speaks MCP over Streamable HTTP; there is no stdio distribution. To run
+your own instance:
 
 ```bash
-npx -y @coret/openarchieven-mcp-server
+git clone https://github.com/coret/openarchieven-mcp-server.git
+cd openarchieven-mcp-server
+npm install
+npm run generate      # builds generated/tools.json from openapi.yaml
+npm run build:viewer  # builds dist/viewer.html (the MCP App)
+npm start             # listens on http://localhost:3001/
 ```
+
+Point your MCP client at `http://localhost:3001/` (or your own public URL) the same
+way as the hosted endpoint above.
 
 ---
 
