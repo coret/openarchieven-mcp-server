@@ -114,7 +114,6 @@ function resolveTool(name: string): ToolDef | undefined {
   return TOOL_MAP.get(name);
 }
 
-
 function isOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return true; // curl, server-to-server, native MCP clients
   if (HARDCODED_ORIGINS.includes(origin)) return true;
@@ -561,7 +560,7 @@ function registerViewer(server: McpServer): void {
 function createMcpServer(): McpServer {
   const server = new McpServer({
     name: 'openarchieven',
-    version: '1.1.0',
+    version: '1.1.1',
   });
 
   const registerTool = (name: string, tool: ToolDef) => {
