@@ -35,6 +35,8 @@ interface HostCtx {
   availableDisplayModes?: string[];
   /** Notches and, on web/desktop, the host's chat composer overlaying the bottom. */
   safeAreaInsets?: { top: number; right: number; bottom: number; left: number };
+  /** Host-offered iframe size — a fixed `height` or an upper bound `maxHeight`. */
+  containerDimensions?: { height?: number; maxHeight?: number; width?: number; maxWidth?: number };
 }
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
@@ -227,7 +229,19 @@ function applyHostContext(ctx: HostCtx | undefined): void {
   root.setProperty('--sa-right', `${ins?.right ?? 0}px`);
   root.setProperty('--sa-bottom', `${ins?.bottom ?? 0}px`);
   root.setProperty('--sa-left', `${ins?.left ?? 0}px`);
-  mainEl.classList.toggle('fullscreen', ctx.displayMode === 'fullscreen');
+
+  const fullscreen = ctx.displayMode === 'fullscreen';
+  mainEl.classList.toggle('fullscreen', fullscreen);
+
+  // Drive #main's height from the space the host offers so the layout asks for
+  // more room (autoResize reports it upward). containerDimensions is either a
+  // fixed `height` or an upper bound `maxHeight`; treat missing/zero as unknown.
+  const dims = ctx.containerDimensions;
+  const availH = dims?.height || dims?.maxHeight || 0;
+  const appH = fullscreen
+    ? availH || window.innerHeight // fill the enlarged container
+    : Math.min(720, availH || 720); // inline: fill what's offered, cap at 720
+  root.setProperty('--app-h', `${appH}px`);
 }
 
 // ── MCP Apps wiring ───────────────────────────────────────────────────────────

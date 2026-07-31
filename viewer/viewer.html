@@ -16,7 +16,10 @@
     --font: var(--font-sans, system-ui, -apple-system, sans-serif);
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; }
+  /* height:auto (not 100%) lets the document grow past the iframe's current
+     height so the MCP Apps autoResize observer can report a taller content size
+     upward — otherwise the layout is pinned to the iframe and never grows. */
+  html, body { margin: 0; height: auto; min-height: 100%; }
   body { font-family: var(--font); color: var(--fg); background: var(--bg); }
 
   #main {
@@ -24,7 +27,10 @@
     grid-template-rows: auto 1fr;
     grid-template-columns: 88px 1fr minmax(220px, 320px);
     grid-template-areas: "bar bar bar" "rail stage panel";
-    height: 100vh;
+    /* Definite, host-derived height (set as --app-h by main.ts from the host's
+       containerDimensions). 540px is the pre-context fallback. This is what the
+       host grows the inline iframe into. */
+    height: var(--app-h, 540px);
     /* Honor host safe-area insets (set as --sa-* by main.ts) as root padding per
        the MCP Apps design guidelines. In inline mode these are 0, so no padding.
        The composer overlap is handled by the fullscreen floor below. box-sizing
@@ -38,7 +44,7 @@
   }
   /* Only in fullscreen does the host overlay its chat composer over the app, so
      reserve a bottom strip there (the host's inset, or an 8rem floor). */
-  #main.fullscreen { border-radius: 0; padding-bottom: max(var(--sa-bottom, 0px), 8rem); }
+  #main.fullscreen { border-radius: 0; padding-bottom: max(var(--sa-bottom, 0px), 11rem); }
   /* Native Fullscreen API (when the host permits it): the element renders above
      the host composer, so square the corners and reclaim all insets. */
   #main:fullscreen { border-radius: 0; padding: 0; background: var(--bg); }
@@ -61,7 +67,7 @@
 
   /* Keep intra-panel scrolling from parking content under the composer (fullscreen). */
   #rail, #panel { scroll-padding-bottom: var(--sa-bottom, 0px); }
-  #main.fullscreen #rail, #main.fullscreen #panel { scroll-padding-bottom: max(var(--sa-bottom, 0px), 8rem); }
+  #main.fullscreen #rail, #main.fullscreen #panel { scroll-padding-bottom: max(var(--sa-bottom, 0px), 11rem); }
   #rail { grid-area: rail; overflow-y: auto; border-right: 1px solid var(--border); background: var(--bg-2); padding: 8px; }
   #rail .thumb {
     width: 100%; border: 2px solid transparent; border-radius: 6px;
