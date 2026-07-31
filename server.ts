@@ -39,6 +39,7 @@ import {
   resolveTtl,
   secondsUntilUtcMidnight,
 } from './cache-ttl.js';
+import { findUntitledTools, titleFor } from './tool-titles.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -100,17 +101,19 @@ if (unmappedTools.length > 0) {
   );
 }
 
+// Same drift check for the human-readable titles shown in MCP host UIs.
+const untitledTools = findUntitledTools(TOOLS.map((t) => t.name));
+if (untitledTools.length > 0) {
+  log.warn(
+    { tools: untitledTools },
+    'tool(s) have no curated title — falling back to Title Case; add them to tool-titles.ts',
+  );
+}
+
 function resolveTool(name: string): ToolDef | undefined {
   return TOOL_MAP.get(name);
 }
 
-function humanize(snake: string): string {
-  return snake
-    .split('_')
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
-}
 
 function isOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return true; // curl, server-to-server, native MCP clients
@@ -458,7 +461,7 @@ function registerViewer(server: McpServer): void {
     server,
     'view_transcription',
     {
-      title: 'View transcription (IIIF image + text)',
+      title: titleFor('view_transcription'),
       description:
         'Open one or more transcribed document pages in an interactive deep-zoom viewer ' +
         'with the transcription text alongside. Pass page identifiers returned by ' +
@@ -476,7 +479,12 @@ function registerViewer(server: McpServer): void {
           .optional()
           .describe('Optional term to highlight in the transcription text.'),
       },
-      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: true },
+      annotations: {
+        title: titleFor('view_transcription'),
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+      },
       _meta: { ui: { resourceUri: VIEWER_URI } },
     },
     async ({ ids, highlight_term }) => {
@@ -558,13 +566,15 @@ function createMcpServer(): McpServer {
 
   const registerTool = (name: string, tool: ToolDef) => {
     const shape = buildZodShape(tool.params);
+    const title = titleFor(name);
     server.registerTool(
       name,
       {
-        title: humanize(name),
+        title,
         description: tool.description,
         inputSchema: shape,
         annotations: {
+          title, // legacy ToolAnnotations.title, for hosts that read the label from annotations
           readOnlyHint: true,
           destructiveHint: false,
           openWorldHint: true,

@@ -38,6 +38,6 @@
     { "id": "search_transcriptions",  "name": "Search Transcriptions",   "description": "Full-text search across page transcriptions of historical documents.",   "tags": ["transcriptions", "search"] },
     { "id": "browse_transcriptions",  "name": "Browse Transcriptions",   "description": "Hierarchically browse transcriptions by source archive, archive number or inventory.", "tags": ["transcriptions"] },
     { "id": "show_transcription",     "name": "Show Transcription",      "description": "Retrieve a single page transcription by id.",                              "tags": ["transcriptions"] },
-    { "id": "view_transcription",     "name": "View Transcription",      "description": "Open transcribed pages in an interactive IIIF deep-zoom viewer with the transcription alongside (falls back to inline preview images).", "tags": ["transcriptions", "viewer", "iiif"] }
+    { "id": "view_transcription",     "name": "View Transcription (IIIF deep-zoom)", "description": "Open transcribed pages in an interactive IIIF deep-zoom viewer with the transcription alongside (falls back to inline preview images).", "tags": ["transcriptions", "viewer", "iiif"] }
   ]
 }
