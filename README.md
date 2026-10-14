@@ -22,6 +22,8 @@ A schema-aware server that automatically converts the OpenAPI specification into
 * Redis caching (optional)
 * Health checks
 
+Video (Dutch): [Help AI met jouw erfgoedservices (via MCP)](https://www.youtube.com/watch?v=ZjEx1gW5_ws)
+
 ---
 
 # Use with Claude
